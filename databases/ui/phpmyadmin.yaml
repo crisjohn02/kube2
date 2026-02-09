@@ -39,8 +39,9 @@ spec:
             # Points to the MariaDB Galera service in the same namespace
             # Since phpMyAdmin is also in "databases" namespace, we can use
             # the short name. Cross-namespace would need: mariadb-galera.databases.svc
+            # to get the service name of the cluster run: kubectl get svc -n databases
             - name: PMA_HOST
-              value: "mariadb"
+              value: "mariadb-cluster"
             - name: PMA_PORT
               value: "3306"
             - name: MYSQL_ROOT_PASSWORD
