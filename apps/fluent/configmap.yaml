@@ -1,0 +1,64 @@
+# ConfigMap - Non-sensitive configuration that OVERRIDES your baked .env
+#
+# Your Docker image already has a .env with plain-text values.
+# This ConfigMap overrides specific values that CHANGE in Kubernetes,
+# mainly database hostnames (they use K8s internal DNS format).
+#
+# SWARM EQUIVALENT: In Swarm, services find each other by service name
+# on the same overlay network:
+#   DB_HOST=mariadb           (Swarm service name)
+#   REDIS_HOST=redis          (Swarm service name)
+#
+# In K8s, the DNS format is: <service-name>.<namespace>.svc
+#   DB_HOST=mariadb-galera.databases.svc
+#   REDIS_HOST=redis-master.databases.svc
+#
+# WHY THIS IS NEEDED:
+#   Even though your image has a .env, the database hostnames in it
+#   point to Swarm service names. K8s uses different DNS names.
+#   Environment variables from ConfigMap override baked .env values.
+#
+# Apply with: kubectl apply -f configmap.yaml
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: laravel-app-config
+  namespace: fluent
+data:
+  # ---- App settings (override if different from baked .env) ----
+  APP_NAME: "LaravelApp"
+  APP_ENV: "production"
+  APP_DEBUG: "false"
+  APP_URL: "https://laravel-app.test"
+
+  # ---- MariaDB Galera connection ----
+  # Swarm:  DB_HOST=mariadb  (service name on web2 network)
+  # K8s:    DB_HOST=mariadb-galera.databases.svc  (service.namespace.svc format)
+  DB_CONNECTION: "mysql"
+  DB_HOST: "mariadb.databases.svc"
+  DB_PORT: "3306"
+  DB_DATABASE: "laravel_app"
+  DB_USERNAME: "root"
+
+  # ---- Redis Sentinel connection ----
+  # Swarm:  REDIS_HOST=redis
+  # K8s:    REDIS_HOST=redis-master.databases.svc
+  REDIS_HOST: "redis.databases.svc"
+  REDIS_PORT: "6379"
+
+  # ---- MongoDB ReplicaSet connection ----
+  # Swarm:  MONGODB_HOST=mongodb
+  # K8s:    MONGODB_HOST=mongodb-headless.databases.svc (headless for replica discovery)
+  MONGODB_HOST: "mongodb-headless.databases.svc"
+  MONGODB_PORT: "27017"
+  MONGODB_DATABASE: "laravel_app"
+
+  # ---- Cache / Session / Queue drivers ----
+  CACHE_DRIVER: "redis"
+  SESSION_DRIVER: "redis"
+  QUEUE_CONNECTION: "redis"
+
+  # ---- Logging ----
+  LOG_CHANNEL: "stderr"
+  LOG_LEVEL: "info"

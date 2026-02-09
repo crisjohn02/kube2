@@ -1,0 +1,50 @@
+services:
+  neo4j:
+    image: neo4j:2025.07.1
+    networks: 
+      - web2
+    environment:
+      - NEO4J_AUTH_FILE=/run/secrets/neo4j_auth_file
+      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_dbms_security_auth__enabled=true
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.import.csv
+      - NEO4J_apoc_import_file_enabled=true 
+      - NEO4J_apoc_export_file_enabled=true 
+      - NEO4J_dbms_directories_import=/var/lib/neo4j/import
+    volumes:
+      - /mnt/data/neo4j/logs:/logs
+      - /mnt/data/neo4j/data:/data
+      - /mnt/data/neo4j/plugin:/plugins
+      - /mnt/data/neo4j/import:/var/lib/neo4j/import
+    secrets:
+      - neo4j_auth_file
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.neo4j.rule=Host(`neo4j.connoisseur-suite.com`)
+        - traefik.http.routers.neo4j.entrypoints=websecure
+        - traefik.http.routers.neo4j.tls=true
+        - traefik.http.routers.neo4j.tls.certresolver=production
+        - traefik.http.services.neo4j.loadbalancer.server.port=7474
+
+        # --- TCP Router (The Bolt Database Connection) ---
+        # This allows the browser to actually talk to the database
+        - traefik.tcp.routers.neo4j-bolt.rule=HostSNI(`bolt.neo4j.connoisseur-suite.com`)
+        - traefik.tcp.routers.neo4j-bolt.entrypoints=websecure
+        - traefik.tcp.routers.neo4j-bolt.tls=true
+        - traefik.tcp.routers.neo4j-bolt.tls.certresolver=production
+        - traefik.tcp.services.neo4j-bolt.loadbalancer.server.port=7687
+      placement:
+        constraints:
+          - node.role == manager
+
+networks:
+  web2:
+    external: true
+
+secrets:
+  neo4j_auth_file:
+    external: true

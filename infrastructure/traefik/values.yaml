@@ -1,0 +1,30 @@
+# Traefik Helm Chart Values
+# These are the values we passed to: helm install traefik traefik/traefik
+#
+# SWARM EQUIVALENT: This replaces your entire traefik-stack/stack.yaml + traefik-stack/config/traefik.yaml
+# In Swarm, Traefik reads the Docker socket to discover services.
+# In K8s, Traefik watches the Kubernetes API for Ingress resources instead.
+#
+# To apply changes: helm upgrade traefik traefik/traefik -n traefik -f values.yaml
+
+# Dashboard - equivalent to your Swarm Traefik dashboard labels
+ingressRoute:
+  dashboard:
+    enabled: true
+    matchRule: Host(`traefik.localhost`)   # Access dashboard at http://traefik.localhost
+
+# Ports - equivalent to your Swarm port bindings:
+#   ports:
+#     - target: 80
+#       published: 80
+#       mode: host
+#     - target: 443
+#       published: 443
+#       mode: host
+ports:
+  web:
+    port: 80
+    nodePort: 30080       # Accessible on any node at port 30080
+  websecure:
+    port: 443
+    nodePort: 30443       # Accessible on any node at port 30443

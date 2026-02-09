@@ -1,0 +1,21 @@
+services:
+  db-proxy:
+    image: haproxy:3.3-alpine
+    networks:
+      - web2
+    configs:
+      - source: haproxy-cfg
+        target: /usr/local/etc/haproxy/haproxy.cfg
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      replicas: 3
+
+networks:
+  web2:
+    external: true
+
+configs:
+  haproxy-cfg:
+    file: ./config/haproxy.cfg

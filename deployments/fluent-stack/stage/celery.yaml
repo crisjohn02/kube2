@@ -1,0 +1,69 @@
+services:
+  celery:
+    image: hub.connoisseur-suite.co.uk/staging/fluent-flask-celery:v2.0.0
+    entrypoint: celery -A celery_app worker --loglevel=info --hostname=worker1@%h
+    env_file:
+      - ${HOME}/config/env/fluent-flask.env
+    networks:
+      - web
+    volumes:
+      - celery_data:/app/logs
+      - fluent_data:/shared/storage # shared storage within fluent and celery for file processing
+    secrets:
+      - fluent_db_password
+      - fluent_mongodb_password
+      - fluent_pusher_app_secret
+    deploy:
+      replicas: 1
+      restart_policy: 
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 2G
+      labels:
+        - traefik.enable=false
+
+  redis:
+    image: redis:8.2-alpine
+    networks:
+      - web
+    command: redis-server --appendonly yes
+    hostname: redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+    deploy:
+      replicas: 1
+      restart_policy: 
+        condition: on-failure
+      resources:
+        limits:
+          memory: 1G
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - traefik.enable=false
+
+networks:
+  web:
+    external: true
+
+volumes:
+  fluent_data:
+    external: true
+  celery_data:
+
+secrets:
+  fluent_db_password:
+    external: true
+  fluent_mongodb_password:
+    external: true
+  fluent_pusher_app_secret:
+    external: true

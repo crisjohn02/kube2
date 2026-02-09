@@ -1,0 +1,37 @@
+services:
+  worker:
+    image: hub.connoisseur-suite.co.uk/staging/express:v3.0.10
+    entrypoint: ["/app/entrypoint.sh"]
+    volumes:
+      - /mnt/nfs/shared/express/data:/app/storage
+    networks:
+      - web
+    secrets:
+      - express_db_password
+      - express_db_password_auth
+      - express_app_key
+    deploy:
+      replicas: 3
+      restart_policy: 
+        condition: on-failure
+      labels:
+        - traefik.enable=false
+      placement:
+        constraints:
+          - node.role == worker
+      resources:
+        limits:
+          memory: 1GB
+
+
+networks:
+  web:
+    external: true
+
+secrets:
+  express_db_password:
+    external: true
+  express_db_password_auth:
+    external: true
+  express_app_key:
+    external: true

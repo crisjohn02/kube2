@@ -1,0 +1,59 @@
+services:
+  pilot_insight:
+    image: hub.connoisseur-suite.co.uk/production/pilot-insight-ide:v1.0.7
+    volumes:
+      - caddy_pilot_insight_data:/data
+      - caddy_pilot_insight_config:/config
+      - pilot_insight_data:/app/storage
+    networks:
+      - web2
+    secrets:
+      - pilot_insight_db_password
+      - pilot_insight_app_key
+      - pilot_insight_app_license
+      - pilot_insight_postmark_token
+      - pilot_insight_pusher_app_secret
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 1s
+        failure_action: rollback
+        monitor: 10s
+        max_failure_ratio: 0.1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 2G
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.pilot_insight.rule=Host(`neurostormer.com`)
+        - traefik.http.routers.pilot_insight.entrypoints=websecure
+        - traefik.http.routers.pilot_insight.tls=true
+        - traefik.http.routers.pilot_insight.tls.certresolver=production
+        - traefik.http.services.pilot_insight.loadbalancer.server.port=80
+
+networks:
+  web2:
+    external: true
+
+volumes:
+  caddy_pilot_insight_data:
+  caddy_pilot_insight_config:
+  pilot_insight_data:
+
+secrets:
+  pilot_insight_db_password:
+    external: true
+  pilot_insight_app_key:
+    external: true
+  pilot_insight_app_license:
+    external: true
+  pilot_insight_postmark_token:
+    external: true
+  pilot_insight_pusher_app_secret:
+    external: true

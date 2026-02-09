@@ -1,0 +1,57 @@
+# ClusterIssuer - Tells cert-manager HOW to get certificates
+# SWARM EQUIVALENT: This replaces the certificatesResolvers in your traefik.yaml
+#
+# In Swarm, each service had a label like:
+#   traefik.http.routers.fluent.tls.certresolver=production
+#
+# In K8s, each Ingress gets an annotation:
+#   cert-manager.io/cluster-issuer: letsencrypt-prod
+#
+# "ClusterIssuer" = available to ALL namespaces (vs "Issuer" = single namespace only)
+#
+# Apply with: kubectl apply -f cluster-issuer.yaml
+
+# Production issuer - real certificates (rate limited: 50 per week per domain)
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    # Let's Encrypt production endpoint
+    server: https://acme-v02.api.letsencrypt.org/directory
+
+    # Your email - Let's Encrypt sends expiry warnings here
+    email: your-email@domain.com
+
+    # Where to store the ACME account private key (as a K8s Secret)
+    # In Swarm, this was a file: /ssl-certs/acme.json
+    # In K8s, it's stored as a Secret automatically
+    privateKeySecretRef:
+      name: letsencrypt-prod-key
+
+    # How to prove you own the domain
+    # http01 = Let's Encrypt makes an HTTP request to your domain
+    # (same as httpChallenge.entryPoint: web in your Swarm Traefik config)
+    solvers:
+      - http01:
+          ingress:
+            class: traefik
+
+---
+# Staging issuer - for testing (fake certificates, no rate limits)
+# Use this first to make sure everything works before switching to prod
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: your-email@domain.com
+    privateKeySecretRef:
+      name: letsencrypt-staging-key
+    solvers:
+      - http01:
+          ingress:
+            class: traefik

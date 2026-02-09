@@ -1,0 +1,31 @@
+name: STAGE_REVERT - CI/CD for App Connoisseur Version 2
+
+on:
+  workflow_dispatch:  # Trigger manually if needed, or you can use push to main
+    inputs:
+        app:
+          description: 'App to revert image (e.g., fluent, fast, express, act)'
+          required: true
+        service:
+          description: 'Service to be reverted (e.g., fluent-widget, fluent-flask)'
+          required: true
+        version:
+          description: 'Service version'
+          required: true
+          default: 'latest'
+
+jobs:
+  build-and-deploy:
+    runs-on: staging
+
+    # strategy:
+    #   matrix:
+    #     app: [fluent,fast,express,act]  # You can extend to other apps (app1, app2, etc.)
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Revert the old image
+      run: |
+        docker service update --force --image ${{ github.event.inputs.service }}:${{ github.event.inputs.version }} ${{ github.event.inputs.app }}-stack_${{ github.event.inputs.service }}

@@ -1,0 +1,26 @@
+services:
+  engine:
+    image: hub.connoisseur-suite.co.uk/production/express-engine:v1.6.6
+    networks:
+      - web2
+    deploy:
+      replicas: 6
+      update_config:
+        parallelism: 0
+        delay: 0s
+      restart_policy: 
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.express_engine.rule=Host(`express-engine.connoisseur-suite.com`)
+        - traefik.http.routers.express_engine.entrypoints=websecure
+        - traefik.http.routers.express_engine.tls=true
+        - traefik.http.routers.express_engine.tls.certresolver=production
+        - traefik.http.services.express_engine.loadbalancer.server.port=80
+
+networks:
+  web2:
+    external: true

@@ -1,0 +1,15 @@
+# Namespace for all database services
+# Keeping databases in their own namespace separates them from app workloads.
+# This mirrors how in Swarm you'd have separate stacks:
+#   - mongo-stack, redis-stack, neo4j (separate stacks)
+# In K8s, one namespace holds all databases. Apps reach them via DNS:
+#   <service>.databases.svc
+#
+# Apply with: kubectl apply -f namespace.yaml
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: databases
+  labels:
+    purpose: data-stores

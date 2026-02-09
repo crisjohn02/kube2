@@ -1,0 +1,47 @@
+services:
+  act:
+    image: hub.connoisseur-suite.co.uk/production/act:v2.1.104
+    volumes:
+      - /mnt/data/act/data:/app/storage
+    networks:
+      - web2
+    secrets:
+      - act_db_password
+      - act_db_password_auth
+      - act_app_key
+      - act_mongodb_password
+    deploy:
+      replicas: 3
+      update_config:
+        parallelism: 0
+        delay: 0s
+        order: start-first
+      restart_policy: 
+        condition: on-failure
+      resources:
+        limits:
+          memory: 1.5G
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.act.rule=Host(`act.connoisseur-suite.com`)
+        - traefik.http.routers.act.entrypoints=websecure
+        - traefik.http.routers.act.tls=true
+        - traefik.http.routers.act.tls.certresolver=production
+        - traefik.http.services.act.loadbalancer.server.port=9000  
+
+networks:
+  web2:
+    external: true
+
+secrets:
+  act_db_password:
+    external: true
+  act_db_password_auth:
+    external: true
+  act_app_key:
+    external: true
+  act_mongodb_password:
+    external: true

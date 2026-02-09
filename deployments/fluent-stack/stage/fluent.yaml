@@ -1,0 +1,64 @@
+services:
+  fluent:
+    image: hub.connoisseur-suite.co.uk/staging/fluent:v2.1.57
+    # entrypoint: ["php", "artisan", "octane:start", "--host=0.0.0.0", "--port=9000", "--workers=5", "--server=swoole", "--max-requests=500"]
+    volumes:
+      - /mnt/nfs/shared/fluent/ide:/app/storage
+    networks:
+      - web
+    secrets:
+      - fluent_app_key
+      - fluent_db_password
+      - fluent_db_password_act
+      - fluent_postmark_api_key
+      - fluent_pusher_app_secret
+      - fluent_google_client_secret
+      - fluent_mongodb_password
+      - fluent_db_password_express
+      - fluent_db_password_imprint
+      - fluent_db_password_fast
+      - fluent_db_password_impress
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 2.5G
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.fluent.rule=Host(`app.connoisseur-suite.co.uk`)
+        - traefik.http.routers.fluent.entrypoints=websecure
+        - traefik.http.routers.fluent.tls=true
+        - traefik.http.routers.fluent.tls.certresolver=production
+        - traefik.http.services.fluent.loadbalancer.server.port=9000
+        # - traefik.http.routers.fluent.middlewares=security-headers@file
+      placement:
+        constraints:
+          - node.role == worker
+
+networks:
+  web:
+    external: true
+
+secrets:
+  fluent_app_key:
+    external: true
+  fluent_db_password:
+    external: true
+  fluent_db_password_act:
+    external: true
+  fluent_postmark_api_key:
+    external: true
+  fluent_pusher_app_secret:
+    external: true
+  fluent_google_client_secret:
+    external: true
+  fluent_mongodb_password:
+    external: true
+  fluent_db_password_express:
+    external: true
+  fluent_db_password_imprint:
+    external: true
+  fluent_db_password_fast:
+    external: true
+  fluent_db_password_impress:
+    external: true

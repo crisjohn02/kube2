@@ -1,0 +1,25 @@
+services:
+  image-editor:
+    image: hub.connoisseur-suite.co.uk/staging/image-editor:v1.0.0
+    volumes:
+      - image_editor_data:/app/storage
+    networks:
+      - web
+    deploy:
+      replicas: 1
+      restart_policy: 
+        condition: on-failure
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.image-editor.rule=Host(`image-editor.connoisseur-suite.co.uk`)
+        - traefik.http.routers.image-editor.entrypoints=websecure
+        - traefik.http.routers.image-editor.tls=true
+        - traefik.http.routers.image-editor.tls.certresolver=production
+        - traefik.http.services.image-editor.loadbalancer.server.port=80
+
+networks:
+  web:
+    external: true
+
+volumes:
+  image_editor_data:

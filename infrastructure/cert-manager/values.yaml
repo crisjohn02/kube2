@@ -1,0 +1,26 @@
+# cert-manager Helm Chart Values
+# These are the values we passed to: helm install cert-manager jetstack/cert-manager
+#
+# SWARM EQUIVALENT: This replaces the certificate resolver section in your
+# traefik-stack/config/traefik.yaml:
+#
+#   certificatesResolvers:
+#     production:
+#       acme:
+#         email: cris.tarpin@splitsecondresearch.com
+#         storage: /ssl-certs/acme.json
+#         httpChallenge:
+#           entryPoint: web
+#
+# In Swarm, Traefik handles Let's Encrypt directly.
+# In K8s, cert-manager is a separate controller that manages certificates
+# and works with ANY ingress controller (Traefik, Nginx, etc.)
+#
+# To apply changes: helm upgrade cert-manager jetstack/cert-manager -n cert-manager -f values.yaml
+
+# Install CRDs (Custom Resource Definitions) - these define new resource types:
+#   - ClusterIssuer  (who issues certificates)
+#   - Certificate    (a specific certificate request)
+#   - CertificateRequest, Order, Challenge (internal resources)
+crds:
+  enabled: true

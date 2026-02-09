@@ -1,0 +1,64 @@
+services:
+  act:
+    image: hub.connoisseur-suite.co.uk/production/act:v2.1.97
+    volumes:
+      - /mnt/data/act/data:/app/storage
+    networks:
+      - web2
+    secrets:
+      - act_db_password
+      - act_db_password_auth
+      - act_app_key
+    deploy:
+      replicas: 5
+      update_config:
+        parallelism: 0
+        delay: 0s
+        order: start-first
+      restart_policy: 
+        condition: on-failure
+      resources:
+        limits:
+          memory: 1.5G
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.act.rule=Host(`act.connoisseur-suite.com`)
+        - traefik.http.routers.act.entrypoints=websecure
+        - traefik.http.routers.act.tls=true
+        - traefik.http.routers.act.tls.certresolver=production
+        - traefik.http.services.act.loadbalancer.server.port=80
+
+  act-engine:
+    image: hub.connoisseur-suite.co.uk/production/act-engine:v1.0.1
+    networks:
+      - web2
+    deploy:
+      replicas: 6
+      restart_policy: 
+        condition: on-failure
+      resources:
+        limits:
+          memory: 500M
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.act_engine.rule=Host(`act-engine.connoisseur-suite.com`)
+        - traefik.http.routers.act_engine.entrypoints=websecure
+        - traefik.http.routers.act_engine.tls=true
+        - traefik.http.routers.act_engine.tls.certresolver=production
+        - traefik.http.services.act_engine.loadbalancer.server.port=80
+    
+
+networks:
+  web2:
+    external: true
+
+secrets:
+  act_db_password:
+    external: true
+  act_db_password_auth:
+    external: true
+  act_app_key:
+    external: true

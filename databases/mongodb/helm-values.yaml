@@ -1,0 +1,37 @@
+# MongoDB Helm Values - 3-Node ReplicaSet
+#
+# SWARM EQUIVALENT: Your deployments/mongo-stack/stack.yaml runs a SINGLE MongoDB:
+#   services:
+#     mongodb:
+#       image: mongo:8.2.3
+#       volumes: [mongodb_data:/data/db]
+#
+# This K8s version runs 3 nodes as a ReplicaSet:
+#   - 1 Primary (accepts writes)
+#   - 2 Secondaries (accept reads, auto-promoted if primary dies)
+#
+# Install with:
+#   helm install mongodb bitnami/mongodb -n databases -f helm-values.yaml
+#
+# The Helm chart creates:
+#   - StatefulSet: mongodb-0, mongodb-1, mongodb-2
+#   - Headless Service: mongodb-headless.databases.svc (for replica discovery)
+#   - Regular Service: mongodb.databases.svc (connects to primary only)
+#   - PVCs: 3 x 8Gi persistent volumes
+
+architecture: replicaset
+replicaCount: 3
+
+auth:
+  rootUser: root
+  rootPassword: "secret"
+
+persistence:
+  size: 8Gi
+
+resources:
+  limits:
+    memory: 1Gi
+  requests:
+    memory: 256Mi
+    cpu: 100m

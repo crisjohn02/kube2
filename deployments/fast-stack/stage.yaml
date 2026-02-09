@@ -1,0 +1,41 @@
+services:
+  fast:
+    image: hub.connoisseur-suite.co.uk/staging/fast:v1.1.0
+    entrypoint: ["php", "artisan", "octane:start", "--host=0.0.0.0", "--port=9000", "--workers=5", "--server=swoole", "--max-requests=500"]
+    volumes:
+      - /mnt/nfs/shared/fast:/app/storage
+    networks:
+      - web
+    secrets:
+      - fast_app_key
+      - fast_db_password
+      - fast_db_password_auth
+    deploy:
+      replicas: 2
+      restart_policy: 
+        condition: on-failure
+      resources:
+        limits:
+          memory: 2GB
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.fast.rule=Host(`fast.connoisseur-suite.co.uk`)
+        - traefik.http.routers.fast.entrypoints=websecure
+        - traefik.http.routers.fast.tls=true
+        - traefik.http.routers.fast.tls.certresolver=production
+        - traefik.http.services.fast.loadbalancer.server.port=9000
+      placement:
+        constraints:
+          - node.role == worker
+
+networks:
+  web:
+    external: true
+
+secrets:
+  fast_app_key:
+    external: true
+  fast_db_password:
+    external: true
+  fast_db_password_auth:
+    external: true

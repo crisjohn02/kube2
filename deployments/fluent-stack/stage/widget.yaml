@@ -1,0 +1,41 @@
+services:
+  widget:
+    image: hub.connoisseur-suite.co.uk/staging/fluent-widget:v1.0.23
+    env_file:
+      - ${HOME}/config/env/fluent-widget.env
+    secrets:
+      - fluent_mongodb_password
+      - fluent_db_password
+    networks:
+      - web
+    healthcheck:
+      test: ["CMD", "curl", "-f", "0.0.0.0:3000/healthcheck"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+    deploy:
+      replicas: 1
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.fluent_widget.rule=Host(`fluent-widget.connoisseur-suite.co.uk`)
+        - traefik.http.routers.fluent_widget.entrypoints=websecure
+        - traefik.http.routers.fluent_widget.tls=true
+        - traefik.http.routers.fluent_widget.tls.certresolver=production
+        - traefik.http.services.fluent_widget.loadbalancer.server.port=3000
+
+networks:
+  web:
+    external: true
+
+volumes:
+  caddy_fluent_data:
+  caddy_fluent_config:
+  fluent_data:
+  fluent_flask_data:
+
+secrets:
+  fluent_db_password:
+    external: true
+  fluent_mongodb_password:
+    external: true

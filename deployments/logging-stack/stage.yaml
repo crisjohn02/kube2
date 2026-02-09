@@ -1,0 +1,40 @@
+services:
+  dozzle:
+    image: amir20/dozzle:latest
+    networks:
+      - web
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - DOZZLE_MODE=swarm
+      - DOZZLE_FILTER=status=running
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 30s
+        failure_action: rollback
+        monitor: 10s
+        max_failure_ratio: 0.1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 1GB
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.dozzle.rule=Host(`dozzle.connoisseur-suite.co.uk`)
+        - traefik.http.routers.dozzle.entrypoints=websecure
+        - traefik.http.routers.dozzle.middlewares=dozzle-auth
+        - traefik.http.services.dozzle.loadbalancer.server.port=8080
+        - traefik.http.routers.dozzle.tls=true
+        - traefik.http.routers.dozzle.tls.certresolver=production
+        # Basic Auth - username: 78_iu0Ux£, password: 78Hyg_9098285Uy+_1334
+        - traefik.http.middlewares.dozzle-auth.basicauth.users=78_iu0Ux£:$$2y$$05$$TiTAi8IB1uDYpnoTbPQpDODnU.PHIecr/.xz3VDRk66zIUv.578eq
+
+networks:
+  web:
+    external: true

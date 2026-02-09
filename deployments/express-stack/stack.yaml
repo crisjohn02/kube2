@@ -1,0 +1,71 @@
+services:
+  express:
+    image: hub.connoisseur-suite.co.uk/production/express:v2.3.39
+    volumes:
+      - /mnt/data/express/data:/app/storage
+      - /mnt/data/express/assets:/app/public/gallery
+    networks:
+      - web2
+    secrets:
+      - express_db_password
+      - express_db_password_auth
+      - express_app_key
+    deploy:
+      replicas: 10
+      update_config:
+        parallelism: 0
+        delay: 0s
+        failure_action: rollback
+        monitor: 45s
+        max_failure_ratio: 0
+        order: start-first
+      restart_policy: 
+        condition: on-failure
+      resources:
+        limits:
+          memory: 1.5G
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.express.rule=Host(`express.connoisseur-suite.com`)
+        - traefik.http.routers.express.entrypoints=websecure
+        - traefik.http.routers.express.tls=true
+        - traefik.http.routers.express.tls.certresolver=production
+        - traefik.http.services.express.loadbalancer.server.port=80
+        - traefik.http.services.express.loadbalancer.server.scheme=http
+
+  express-engine:
+    image: hub.connoisseur-suite.co.uk/production/express-engine:v1.5.20
+    networks:
+      - web2
+    deploy:
+      replicas: 6
+      update_config:
+        parallelism: 0
+        delay: 0s
+      restart_policy: 
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.express_engine.rule=Host(`express-engine.connoisseur-suite.com`)
+        - traefik.http.routers.express_engine.entrypoints=websecure
+        - traefik.http.routers.express_engine.tls=true
+        - traefik.http.routers.express_engine.tls.certresolver=production
+        - traefik.http.services.express_engine.loadbalancer.server.port=80
+
+networks:
+  web2:
+    external: true
+
+secrets:
+  express_db_password:
+    external: true
+  express_db_password_auth:
+    external: true
+  express_app_key:
+    external: true

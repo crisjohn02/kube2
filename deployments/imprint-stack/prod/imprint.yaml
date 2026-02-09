@@ -1,0 +1,44 @@
+services:
+  imprint:
+    image: hub.connoisseur-suite.co.uk/production/imprint:v1.0.78
+    volumes:
+      - /mnt/data/imprint/data:/app/storage
+    networks:
+      - web2
+    secrets:
+      - imprint_app_key
+      - imprint_db_password
+      - imprint_db_password_auth
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 0
+        delay: 0s
+      restart_policy: 
+        condition: on-failure
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.imprint.rule=Host(`imprint.connoisseur-suite.com`)
+        - traefik.http.routers.imprint.entrypoints=websecure
+        - traefik.http.routers.imprint.tls=true
+        - traefik.http.routers.imprint.tls.certresolver=production
+        - traefik.http.services.imprint.loadbalancer.server.port=9000
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 1.5G
+
+
+networks:
+  web2:
+    external: true
+  
+secrets:
+  imprint_app_key:
+    external: true
+  imprint_db_password:
+    external: true
+  imprint_db_password_auth:
+    external: true

@@ -1,0 +1,58 @@
+services:
+  neo4j:
+    image: neo4j:2025.07.1
+    networks: 
+      - web
+    environment:
+      - NEO4J_AUTH_FILE=/run/secrets/neo4j_auth_file
+      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_dbms_security_auth__enabled=true
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.import.csv
+      # - NEO4J_dbms_security_procedures_allowlist=apoc.*
+      - NEO4J_apoc_import_file_enabled=true 
+      - NEO4J_apoc_export_file_enabled=true 
+      - NEO4J_dbms_directories_import=/var/lib/neo4j/import
+      # - NEO4J_server_bolt_advertised_address=bolt.neo4j.connoisseur-suite.co.uk:7687
+      # - NEO4J_server_bolt_tls__level=REQUIRED
+      # - NEO4J_server_http_enabled=false
+      # - NEO4J_server_https_enabled=true
+      # - NEO4J_dbms_ssl_policy_https_enabled=true
+      # - NEO4J_dbms_ssl_policy_bolt_enabled=true
+    volumes:
+      - /mnt/nfs/shared/neo4j/logs:/logs
+      # - ./neo4j.conf:/var/lib/neo4j/conf/neo4j.conf
+      - /mnt/nfs/shared/neo4j/data:/data
+      - /mnt/nfs/shared/neo4j/plugin:/plugins
+      - /mnt/nfs/shared/neo4j/import:/var/lib/neo4j/import
+    secrets:
+      - neo4j_auth_file
+    deploy:
+      resources:
+        limits:
+          memory: 10G
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.neo4j.rule=Host(`neo4j.connoisseur-suite.co.uk`)
+        - traefik.http.routers.neo4j.entrypoints=websecure
+        - traefik.http.routers.neo4j.tls=true
+        - traefik.http.routers.neo4j.tls.certresolver=production
+        - traefik.http.services.neo4j.loadbalancer.server.port=7474
+
+        # --- TCP Router (The Bolt Database Connection) ---
+        # This allows the browser to actually talk to the database
+        - traefik.tcp.routers.neo4j-bolt.rule=HostSNI(`bolt.neo4j.connoisseur-suite.co.uk`)
+        - traefik.tcp.routers.neo4j-bolt.entrypoints=websecure
+        - traefik.tcp.routers.neo4j-bolt.tls=true
+        - traefik.tcp.routers.neo4j-bolt.tls.certresolver=production
+        - traefik.tcp.services.neo4j-bolt.loadbalancer.server.port=7687
+      placement:
+        constraints:
+          - node.role == worker
+
+networks:
+  web:
+    external: true
+
+secrets:
+  neo4j_auth_file:
+    external: true

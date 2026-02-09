@@ -1,0 +1,64 @@
+services:
+  redis:
+    image: redis:8.4-alpine
+    networks:
+      - web2
+    command: redis-server --appendonly yes
+    hostname: redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+    deploy:
+      replicas: 1
+      restart_policy: 
+        condition: on-failure
+      resources:
+        limits:
+          memory: 1G
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - traefik.enable=false
+
+  # flower:
+  #   image: mher/flower
+  #   container_name: flower
+  #   command: celery --broker=redis://redis:6379/0 flower --port=5555
+  #   depends_on:
+  #     - redis
+  #   networks:
+  #     - web2
+  #   restart: unless-stopped
+  #   deploy:
+  #     replicas: 1
+  #     restart_policy: 
+  #       condition: on-failure
+  #     placement:
+  #       constraints:
+  #         - node.role == manager
+  #     labels:
+  #       - traefik.enable=true
+  #       - traefik.http.routers.flower.rule=Host(`flower.connoisseur-suite.com`)
+  #       - traefik.http.routers.flower.entrypoints=websecure
+  #       - traefik.http.routers.flower.tls=true
+  #       - traefik.http.routers.flower.tls.certresolver=production
+  #       - traefik.http.services.flower.loadbalancer.server.port=5555
+  #       - "traefik.http.routers.flower.middlewares=auth"
+  #       # to create user run commnd `echo $(htpasswd -nB user) | sed -e s/\\$/\\$\\$/g` ssr-admin 98_ujah£41+1334
+  #       - "traefik.http.middlewares.auth.basicauth.users=ssr-admin:$$2y$$05$$DZ1wvrVWmKJH3kT3eM7GQ.jBcF918sp7eje1uAqdXoK0uFMy7Ego2"
+
+networks:
+  web2:
+    external: true
+
+secrets:
+  fluent_db_password:
+    external: true
+  fluent_mongodb_password:
+    external: true
+  fluent_pusher_app_secret:
+    external: true

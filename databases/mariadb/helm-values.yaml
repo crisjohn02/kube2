@@ -1,0 +1,42 @@
+# MariaDB Galera Helm Values
+#
+# SWARM EQUIVALENT: You don't have clustered MariaDB in Swarm.
+# This is an upgrade - 3 nodes, multi-master, synchronous replication.
+#
+# Galera Cluster means:
+#   - ALL 3 nodes accept reads AND writes (multi-master)
+#   - Data is synchronously replicated (no data loss on failover)
+#   - Lose 1 node? Other 2 keep serving. Zero downtime maintenance.
+#
+# Install with:
+#   helm install mariadb bitnami/mariadb-galera -n databases -f helm-values.yaml
+#
+# The Helm chart creates:
+#   - StatefulSet: mariadb-galera-0, mariadb-galera-1, mariadb-galera-2
+#   - Service: mariadb-galera.databases.svc (load-balances across all nodes)
+#   - PVCs: 3 x 8Gi persistent volumes (one per node)
+#   - Secrets: auto-generated from passwords below
+
+replicaCount: 3
+
+rootUser:
+  password: "secret"
+
+db:
+  name: laravel_app
+  user: root
+  password: "secret"
+
+persistence:
+  size: 8Gi
+
+resources:
+  limits:
+    memory: 1Gi
+  requests:
+    memory: 256Mi
+    cpu: 100m
+
+galera:
+  mariabackup:
+    password: "secret"

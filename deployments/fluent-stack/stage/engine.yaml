@@ -1,0 +1,69 @@
+services:
+  engine:
+    image: hub.connoisseur-suite.co.uk/staging/fluent-engine:v2.0.13
+    entrypoint: ["php", "artisan", "octane:start", "--host=0.0.0.0", "--port=9000", "--workers=5", "--server=swoole", "--max-requests=500"]
+    volumes:
+      - /mnt/nfs/shared/fluent/ide:/app/storage
+    networks:
+      - web
+    secrets:
+      - fluent_app_key
+      - fluent_db_password
+      - fluent_db_password_act
+      - fluent_postmark_token
+      - fluent_pusher_app_secret
+      - fluent_google_client_secret
+      - fluent_mongodb_password
+      - fluent_db_password_express
+      - fluent_db_password_imprint
+      - fluent_db_password_fast
+      - fluent_db_password_impress
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 0
+        delay: 0s
+      restart_policy: 
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == worker
+      resources:
+        limits:
+          memory: 2G
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.fluent_engine.rule=Host(`e.connoisseur-suite.co.uk`)
+        - traefik.http.routers.fluent_engine.entrypoints=websecure
+        - traefik.http.routers.fluent_engine.tls=true
+        - traefik.http.routers.fluent_engine.tls.certresolver=production
+        - traefik.http.services.fluent_engine.loadbalancer.server.port=9000
+        - traefik.http.routers.fluent_engine.middlewares=security-headers@file
+
+networks:
+  web:
+    external: true
+
+secrets:
+  fluent_app_key:
+    external: true
+  fluent_db_password:
+    external: true
+  fluent_db_password_act:
+    external: true
+  fluent_postmark_token:
+    external: true
+  fluent_google_client_secret:
+    external: true
+  fluent_pusher_app_secret:
+    external: true
+  fluent_mongodb_password:
+    external: true
+  fluent_db_password_express:
+    external: true
+  fluent_db_password_imprint:
+    external: true
+  fluent_db_password_fast:
+    external: true
+  fluent_db_password_impress:
+    external: true

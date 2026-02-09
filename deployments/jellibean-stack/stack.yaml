@@ -1,0 +1,93 @@
+services:
+  jellibean-ide:
+    image: hub.connoisseur-suite.co.uk/production/jellibean-ide:v1.0.36
+    env_file:
+      - ${HOME}/config/env/jellibean-ide.env
+    volumes:
+      - /mnt/data/jellibean/data:/app/storage
+    secrets:
+      - jbean_app_key
+      - jbean_db_password
+      - jbean_postmark_token
+      - jbean_google_client_secret
+      - jbean_google_client_secret2
+      - jbean_google_client_secret3
+      - jbean_github_secret
+      - jbean_github_secret2
+      - jbean_github_secret3
+      - jbean_apple_client_secret
+    networks:
+      - web2
+    deploy:
+      replicas: 2
+      restart_policy: 
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 2G
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.jellibean_ide.rule=Host(`jellibean.app`)
+        - traefik.http.routers.jellibean_ide.entrypoints=websecure
+        - traefik.http.routers.jellibean_ide.tls=true
+        - traefik.http.routers.jellibean_ide.tls.certresolver=production
+        - traefik.http.services.jellibean_ide.loadbalancer.server.port=80
+
+  web-jbean-wordpress:
+    image: wordpress:php8.3-apache
+    env_file:
+      - ${HOME}/config/env/web-jellibean.env
+    volumes:
+      - /mnt/data/jellibean/web:/var/www/html
+      - ./php/custom.ini:/usr/local/etc/php/conf.d/custom.ini
+    networks:
+      - web2
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 30s
+        failure_action: rollback
+        monitor: 10s
+        max_failure_ratio: 0.1
+      restart_policy: 
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.webjbean.rule=Host(`web.jellibean.app`)
+        - traefik.http.routers.webjbean.entrypoints=websecure
+        - traefik.http.routers.webjbean.tls=true
+        - traefik.http.routers.webjbean.tls.certresolver=production
+        - traefik.http.services.webjbean.loadbalancer.server.port=80
+
+networks:
+  web2:
+    external: true
+
+secrets:
+  jbean_app_key:
+    external: true
+  jbean_db_password:
+    external: true
+  jbean_postmark_token:
+    external: true
+  jbean_google_client_secret:
+    external: true
+  jbean_google_client_secret2:
+    external: true
+  jbean_google_client_secret3:
+    external: true
+  jbean_github_secret:
+    external: true
+  jbean_github_secret2:
+    external: true
+  jbean_github_secret3:
+    external: true
+  jbean_apple_client_secret:
+    external: true

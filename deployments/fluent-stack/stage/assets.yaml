@@ -1,0 +1,39 @@
+services:
+  assets:
+    image: hub.connoisseur-suite.co.uk/staging/assets:v1.0.0
+    networks:
+      - web
+    volumes:
+      - /mnt/nfs/shared/fluent/assets:/app/storage
+      - /mnt/nfs/shared/fluent/ide/app/public/galleries:/app/storage/app/public/galleries
+    secrets:
+      - assets_app_key
+      - assets_db_password
+      - assets_db_password_auth
+    deploy:
+      replicas: 1
+      restart_policy: 
+        condition: on-failure
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.assets.rule=Host(`assets.connoisseur-suite.co.uk`)
+        - traefik.http.routers.assets.entrypoints=websecure
+        - traefik.http.routers.assets.tls=true
+        - traefik.http.routers.assets.tls.certresolver=production
+        - traefik.http.services.assets.loadbalancer.server.port=9000
+      placement:
+        constraints:
+          - node.role == worker
+
+networks:
+  web:
+    external: true
+
+
+secrets:
+  assets_app_key:
+    external: true
+  assets_db_password:
+    external: true
+  assets_db_password_auth:
+    external: true

@@ -1,0 +1,37 @@
+# Security Headers Middleware
+# SWARM EQUIVALENT: This replaces your traefik-stack/config/headers.yaml
+#
+# In Swarm, you mounted headers.yaml as a file into the Traefik container.
+# In K8s, you create a Middleware CRD (Custom Resource Definition) that Traefik watches.
+#
+# To use this on any Ingress, add this annotation:
+#   traefik.ingress.kubernetes.io/router.middlewares: traefik-security-headers@kubernetescrd
+#
+# Apply with: kubectl apply -f security-headers.yaml
+
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: security-headers
+  namespace: traefik
+spec:
+  headers:
+    # HSTS - forces HTTPS for 1 year, including subdomains
+    stsSeconds: 31536000
+    stsIncludeSubdomains: true
+    stsPreload: true
+
+    # Clickjacking protection - prevents your site from being loaded in an iframe
+    frameDeny: true
+
+    # Prevents browsers from MIME-sniffing a response away from the declared content-type
+    contentTypeNosniff: true
+
+    # XSS protection - enables browser's built-in XSS filter
+    browserXssFilter: true
+
+    # Controls how much referrer info is sent with requests
+    referrerPolicy: strict-origin-when-cross-origin
+
+    # Restricts browser features (camera, mic, location)
+    permissionsPolicy: "camera=(), microphone=(), geolocation=()"

@@ -1,0 +1,28 @@
+services:
+  overlay-service:
+    image: hub.connoisseur-suite.co.uk/production/overlay-service:v1.0.0
+    networks:
+      - web2
+    env_file:
+      - ${HOME}/config/env/overlay-service.env
+    deploy:
+      replicas: 1
+      restart_policy: 
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 1G
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.overlay_service.rule=Host(`overlay-service.connoisseur-suite.com`)
+        - traefik.http.routers.overlay_service.entrypoints=websecure
+        - traefik.http.routers.overlay_service.tls=true
+        - traefik.http.routers.overlay_service.tls.certresolver=production
+        - traefik.http.services.overlay_service.loadbalancer.server.port=5001
+
+networks:
+  web2:
+    external: true

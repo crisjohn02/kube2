@@ -1,0 +1,140 @@
+# MariaDB StatefulSet - Single instance for local development
+#
+# SWARM EQUIVALENT: In Swarm you'd run a single MariaDB service:
+#   services:
+#     mariadb:
+#       image: mariadb:11
+#       environment:
+#         MARIADB_ROOT_PASSWORD: secret
+#         MARIADB_DATABASE: laravel_app
+#       volumes:
+#         - mariadb_data:/var/lib/mysql
+#
+# WHY STATEFULSET INSTEAD OF DEPLOYMENT:
+#   Databases need StatefulSets because:
+#   - Stable pod name: always "mariadb-0" (not random like "mariadb-7d8f9-xk2lp")
+#   - Stable storage: PVC stays attached even if pod restarts
+#   - Ordered startup: pod-0 starts before pod-1 (important for clustering)
+#   - Stable DNS: mariadb-0.mariadb-headless.databases.svc
+#
+# For production Galera clustering, you'd add an initContainer that
+# configures wsrep and bootstraps the cluster. For learning, single node is fine.
+#
+# Apply with: kubectl apply -f statefulset.yaml
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mariadb-secret
+  namespace: databases
+type: Opaque
+stringData:
+  MARIADB_ROOT_PASSWORD: "secret"
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mariadb
+  namespace: databases
+spec:
+  serviceName: mariadb-headless      # Required for StatefulSet - creates DNS entries
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mariadb
+  template:
+    metadata:
+      labels:
+        app: mariadb
+    spec:
+      containers:
+        - name: mariadb
+          image: mariadb:11
+          ports:
+            - containerPort: 3306
+              name: mysql
+          env:
+            - name: MARIADB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mariadb-secret
+                  key: MARIADB_ROOT_PASSWORD
+            - name: MARIADB_DATABASE
+              value: "laravel_app"
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/mysql
+          resources:
+            limits:
+              memory: "1Gi"
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+          # Readiness probe - K8s won't send traffic until MariaDB is ready
+          readinessProbe:
+            exec:
+              command:
+                - mariadb-admin
+                - ping
+                - -h
+                - localhost
+                - -uroot
+                - -psecret
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          # Liveness probe - restart if MariaDB becomes unresponsive
+          livenessProbe:
+            exec:
+              command:
+                - mariadb-admin
+                - ping
+                - -h
+                - localhost
+                - -uroot
+                - -psecret
+            initialDelaySeconds: 30
+            periodSeconds: 30
+  # volumeClaimTemplates - unique PVC per replica (the StatefulSet magic)
+  # Each pod gets its own disk. If mariadb-0 is deleted and recreated,
+  # it reattaches to the SAME PVC with all data intact.
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 8Gi
+
+---
+# Headless Service - required by StatefulSet for DNS
+# This creates DNS entries like: mariadb-0.mariadb-headless.databases.svc
+# "Headless" means clusterIP: None - no load balancing, direct pod access
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb-headless
+  namespace: databases
+spec:
+  clusterIP: None
+  selector:
+    app: mariadb
+  ports:
+    - port: 3306
+      targetPort: 3306
+
+---
+# Regular Service - provides a stable single DNS entry with load balancing
+# Apps connect to: mariadb.databases.svc
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb
+  namespace: databases
+spec:
+  selector:
+    app: mariadb
+  ports:
+    - port: 3306
+      targetPort: 3306

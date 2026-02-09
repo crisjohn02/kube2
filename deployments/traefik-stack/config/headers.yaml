@@ -1,0 +1,53 @@
+http:
+  middlewares:
+    security-headers:
+      headers:
+        frameDeny: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        customResponseHeaders:
+          Referrer-Policy: "strict-origin-when-cross-origin"
+          Permissions-Policy: "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+          Content-Security-Policy: |
+            default-src 'self';
+            connect-src 'self' 
+              fonts.googleapis.com 
+              wss://ws.connoisseur-suite.co.uk 
+              wss://ws.connoisseur-suite.com 
+              www.google-analytics.com 
+              region1.google-analytics.com 
+              express.connoisseur-suite.co.uk 
+              express.connoisseur-suite.com 
+              act.connoisseur-suite.co.uk 
+              act.connoisseur-suite.com 
+              fast.connoisseur-suite.co.uk 
+              fast.connoisseur-suite.com 
+              fluent-widget.connoisseur-suite.co.uk 
+              fluent-widget.connoisseur-suite.com
+              fluent-flask.connoisseur-suite.co.uk 
+              fluent-flask.connoisseur-suite.com 
+              overlay-service.connoisseur-suite.co.uk 
+              overlay-service.connoisseur-suite.com
+              impress.connoisseur-suite.co.uk 
+              impress.connoisseur-suite.com
+              imprint.connoisseur-suite.co.uk 
+              imprint.connoisseur-suite.com
+              impact.connoisseur-suite.co.uk 
+              impact.connoisseur-suite.com;
+            script-src 'self' 
+              www.googletagmanager.com 
+              www.google-analytics.com 
+              js.stripe.com;
+            font-src 'self' fonts.bunny.net;
+            style-src-elem 'self' fonts.bunny.net;
+            img-src 'self' 
+              ui-avatars.com 
+              www.google-analytics.com 
+              www.googletagmanager.com 
+              data:;
+            frame-ancestors 'none';
+            upgrade-insecure-requests;
+          Server: ""

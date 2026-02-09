@@ -1,0 +1,79 @@
+# RedisInsight - Redis Web UI
+#
+# SWARM EQUIVALENT: Your deployments/redis-stack/stack.yaml has:
+#   services:
+#     redis-gui:
+#       image: redis/redisinsight:latest
+#       networks: [web2]
+#       deploy:
+#         resources:
+#           limits:
+#             memory: 1G
+#
+# Same image, same purpose. In K8s the only difference is how it's deployed
+# (Deployment + Service + Ingress instead of one service block with labels).
+#
+# Access: http://redisinsight.localhost (via Traefik Ingress)
+# After opening, add a connection manually:
+#   Host: redis-master (same namespace short name)
+#   Port: 6379
+#   Password: secret
+#
+# Apply with: kubectl apply -f redisinsight.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redisinsight
+  namespace: databases
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redisinsight
+  template:
+    metadata:
+      labels:
+        app: redisinsight
+    spec:
+      containers:
+        - name: redisinsight
+          image: redis/redisinsight:latest
+          ports:
+            - containerPort: 5540
+          resources:
+            limits:
+              memory: "512Mi"
+            requests:
+              memory: "128Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redisinsight
+  namespace: databases
+spec:
+  selector:
+    app: redisinsight
+  ports:
+    - port: 5540
+      targetPort: 5540
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: redisinsight
+  namespace: databases
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: redis.test
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: redisinsight
+                port:
+                  number: 5540

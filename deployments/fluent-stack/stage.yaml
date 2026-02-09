@@ -1,0 +1,197 @@
+services:
+  fluent:
+    image: hub.connoisseur-suite.co.uk/staging/fluent:v2.0.0
+    env_file:
+      - ${HOME}/config/env/fluent.env
+    volumes:
+      - caddy_fluent_data:/data
+      - caddy_fluent_config:/config
+      - fluent_data:/app/storage
+    networks:
+      - web
+    secrets:
+      - fluent_app_key
+      - fluent_db_password
+      - fluent_db_password_act
+      - fluent_postmark_token
+      - fluent_pusher_app_secret
+      - fluent_google_client_secret
+      - fluent_mongodb_password
+    deploy:
+      replicas: 1
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.fluent.rule=Host(`app.connoisseur-suite.co.uk`)
+        - traefik.http.routers.fluent.entrypoints=websecure
+        - traefik.http.routers.fluent.tls=true
+        - traefik.http.routers.fluent.tls.certresolver=production
+        - traefik.http.services.fluent.loadbalancer.server.port=80
+        - traefik.http.routers.fluent.middlewares=security-headers@file
+      placement:
+        constraints:
+          - node.role == manager
+
+  fluent-worker:
+    image: hub.connoisseur-suite.co.uk/staging/fluent-worker:v2.0.0
+    entrypoint: ["php", "artisan", "queue:work"]
+    networks:
+      - web
+    secrets:
+      - fluent_app_key
+      - fluent_db_password
+      - fluent_db_password_act
+      - fluent_postmark_token
+      - fluent_pusher_app_secret
+      - fluent_google_client_secret
+      - fluent_mongodb_password
+    volumes:
+      - fluent_data:/app/storage
+    deploy:
+      replicas: 1
+      restart_policy: 
+        condition: on-failure
+      labels:
+        - traefik.enable=false
+  
+  fluent-widget:
+    image: hub.connoisseur-suite.co.uk/staging/fluent-widget:v1.0.23
+    env_file:
+      - ${HOME}/config/env/fluent-widget.env
+    secrets:
+      - fluent_mongodb_password
+      - fluent_db_password
+    networks:
+      - web
+    healthcheck:
+      test: ["CMD", "curl", "-f", "0.0.0.0:3000/healthcheck"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+    deploy:
+      replicas: 1
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.fluent_widget.rule=Host(`fluent-widget.connoisseur-suite.co.uk`)
+        - traefik.http.routers.fluent_widget.entrypoints=websecure
+        - traefik.http.routers.fluent_widget.tls=true
+        - traefik.http.routers.fluent_widget.tls.certresolver=production
+        - traefik.http.services.fluent_widget.loadbalancer.server.port=3000
+      
+  fluent-flask:
+    image: hub.connoisseur-suite.co.uk/staging/fluent-flask:v1.0.2
+    env_file:
+      - ${HOME}/config/env/fluent-flask.env
+    secrets:
+      - fluent_db_password
+    networks:
+      - web
+    volumes:
+      - fluent_flask_data:/app/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://0.0.0.0:5001/healthcheck"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+    deploy:
+      replicas: 1
+      restart_policy: 
+        condition: on-failure
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.fluent_flask.rule=Host(`fluent-flask.connoisseur-suite.co.uk`)
+        - traefik.http.routers.fluent_flask.entrypoints=websecure
+        - traefik.http.routers.fluent_flask.tls=true
+        - traefik.http.routers.fluent_flask.tls.certresolver=production
+        - traefik.http.services.fluent_flask.loadbalancer.server.port=5001
+
+  overlay-service:
+    image: hub.connoisseur-suite.co.uk/staging/overlay-service:v1.0.0
+    networks:
+      - web
+    deploy:
+      replicas: 1
+      restart_policy: 
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          memory: 1G
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.overlay_service.rule=Host(`overlay-service.connoisseur-suite.co.uk`)
+        - traefik.http.routers.overlay_service.entrypoints=websecure
+        - traefik.http.routers.overlay_service.tls=true
+        - traefik.http.routers.overlay_service.tls.certresolver=production
+        - traefik.http.services.overlay_service.loadbalancer.server.port=5001
+    
+  soketi:
+    image: 'quay.io/soketi/soketi:0.34-16-debian'
+    networks:
+      - web
+    env_file:
+      - ${HOME}/config/env/soketi.env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "0.0.0.0:6001"]
+      interval: 1m30s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
+    deploy:
+      replicas: 1
+      restart_policy: 
+        condition: on-failure
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.ws_soketi.rule=Host(`ws.connoisseur-suite.co.uk`)
+        - traefik.http.routers.ws_soketi.entrypoints=websecure
+        - traefik.http.routers.ws_soketi.tls=true
+        - traefik.http.routers.ws_soketi.tls.certresolver=production
+        - traefik.http.services.ws_soketi.loadbalancer.server.port=6001
+
+  # redis:
+  #   image: redis:7.4-alpine
+  #   networks:
+  #     - web
+  #   command: redis-server --appendonly yes
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 1m30s
+  #     timeout: 30s
+  #     retries: 5
+  #     start_period: 30s
+  #   deploy:
+  #     replicas: 1
+  #     restart_policy: 
+  #       condition: on-failure
+  #     labels:
+  #       - traefik.enable=false
+
+networks:
+  web:
+    external: true
+
+volumes:
+  caddy_fluent_data:
+  caddy_fluent_config:
+  fluent_data:
+  fluent_flask_data:
+
+secrets:
+  fluent_app_key:
+    external: true
+  fluent_db_password:
+    external: true
+  fluent_db_password_act:
+    external: true
+  fluent_postmark_token:
+    external: true
+  fluent_pusher_app_secret:
+    external: true
+  fluent_google_client_secret:
+    external: true
+  fluent_mongodb_password:
+    external: true
