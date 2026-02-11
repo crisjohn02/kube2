@@ -57,6 +57,7 @@ brew install k9s                # Terminal UI - makes K8s visual and fast
 ```bash
 minikube start --cpus=4 --memory=8192 --driver=docker
 minikube addons enable metrics-server
+minikube dashboard
 ```
 
 ### 1.3 Verify
@@ -80,13 +81,12 @@ kubectl cluster-info            # Shows API server URL
 helm repo add traefik https://traefik.github.io/charts
 helm repo update
 
-helm install traefik traefik/traefik \
-  --namespace traefik \
-  --create-namespace \
-  --set ingressRoute.dashboard.enabled=true \
-  --set ingressRoute.dashboard.matchRule='Host(`traefik.localhost`)' \
-  --set ports.web.nodePort=30080 \
-  --set ports.websecure.nodePort=30443
+helm install -f infrastructure/traefik/values.yaml traefik traefik/traefik
+```
+
+#### 2.1.1 Upgrade / Update helm based on values.yaml changes
+```bash
+helm upgrade -f infrastructure/traefik/values.yaml traefik traefik/traefik
 ```
 
 ### 2.2 What Just Happened (vs Your Swarm Traefik)
