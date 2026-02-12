@@ -1,0 +1,80 @@
+# MongoDB Community Operator - 3-Node ReplicaSet
+#
+# SWARM EQUIVALENT: Your deployments/mongo-stack/stack.yaml runs a SINGLE MongoDB:
+#   services:
+#     mongodb:
+#       image: mongo:8.2.3
+#       volumes: [mongodb_data:/data/db]
+#
+# This K8s version uses the official MongoDB Community Operator to run
+# a 3-node ReplicaSet via a MongoDBCommunity custom resource:
+#   - 1 Primary (accepts writes)
+#   - 2 Secondaries (accept reads, auto-promoted if primary dies)
+#   - Operator handles lifecycle, failover, and user management
+#
+# Install the operator first:
+#   helm repo add mongodb https://mongodb.github.io/helm-charts
+#   helm install community-operator mongodb/community-operator \
+#     --namespace databases \
+#     --set operator.watchNamespace="databases"
+#
+# Then apply secrets and this resource:
+#   kubectl apply -f databases/mongodb/secrets.yaml
+#   kubectl apply -f databases/mongodb/mongodb.yaml
+#
+# The operator creates:
+#   - StatefulSet: mongodb-0, mongodb-1, mongodb-2
+#   - Headless Service: mongodb-svc.databases.svc (for replica discovery)
+#   - Connection string secret: mongodb-admin-root (auto-generated)
+#   - PVCs: 3 x 10Gi persistent volumes
+
+apiVersion: mongodbcommunity.mongodb.com/v1
+kind: MongoDBCommunity
+metadata:
+  name: mongodb
+  namespace: databases
+spec:
+  members: 3
+  type: ReplicaSet
+  version: "8.0.4"
+
+  security:
+    authentication:
+      modes: ["SCRAM"]
+
+  users:
+    - name: root
+      db: admin
+      passwordSecretRef:
+        name: mongodb-secret
+        key: password
+      roles:
+        - name: clusterAdmin
+          db: admin
+        - name: userAdminAnyDatabase
+          db: admin
+        - name: root
+          db: admin
+      scramCredentialsSecretName: mongodb-scram
+
+  statefulSet:
+    spec:
+      volumeClaimTemplates:
+        - metadata:
+            name: data-volume
+          spec:
+            accessModes: ["ReadWriteOnce"]
+            resources:
+              requests:
+                storage: 10Gi
+      template:
+        spec:
+          containers:
+            - name: mongod
+              resources:
+                limits:
+                  cpu: 500m
+                  memory: 2Gi
+                requests:
+                  cpu: 100m
+                  memory: 128Mi

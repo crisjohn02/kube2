@@ -50,6 +50,17 @@ brew install kubectl           # The CLI (like docker/docker-compose)
 brew install minikube           # Local cluster (single-node K8s on your Mac)
 brew install helm               # Package manager (used for Traefik, databases, monitoring)
 brew install k9s                # Terminal UI - makes K8s visual and fast
+
+# To install in WSL2 - Windows
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+curl -LO https://github.com/kubernetes/minikube/releases/latest/download/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube && rm minikube-linux-amd64
+
+wget https://github.com/derailed/k9s/releases/latest/download/k9s_linux_amd64.deb && sudo apt install ./k9s_linux_amd64.deb && rm k9s_linux_amd64.deb
+
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4 | bash
 ```
 
 ### 1.2 Start a Local Cluster

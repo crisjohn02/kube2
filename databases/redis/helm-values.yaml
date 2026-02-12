@@ -14,7 +14,8 @@
 #   - 3 Sentinel processes (monitor master, trigger failover)
 #
 # Install with:
-#   helm install redis bitnami/redis -n databases -f helm-values.yaml
+#   kubectl apply -f databases/redis/secrets.yaml
+#   helm install redis oci://registry-1.docker.io/cloudpirates/redis -f databases/redis/helm-values.yaml -n databases
 #
 # The Helm chart creates:
 #   - StatefulSet: redis-master-0 + redis-replicas-0, redis-replicas-1
@@ -24,32 +25,19 @@
 
 architecture: replication
 
-replica:
-  replicaCount: 2
+replicaCount: 3
 
 sentinel:
   enabled: true
   quorum: 2
 
-master:
-  persistence:
-    size: 8Gi
-  resources:
-    limits:
-      memory: 512Mi
-    requests:
-      memory: 128Mi
-      cpu: 50m
-
-replica:
-  persistence:
-    size: 8Gi
-  resources:
-    limits:
-      memory: 512Mi
-    requests:
-      memory: 128Mi
-      cpu: 50m
+persistence:
+  enabled: true
+  size: 8Gi
 
 auth:
-  password: "secret"
+  enabled: true
+  existingSecret: redis-secret
+  existingSecretPasswordKey: REDIS_PASSWORD
+
+

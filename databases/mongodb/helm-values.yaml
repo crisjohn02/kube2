@@ -1,37 +1,49 @@
-# MongoDB Helm Values - 3-Node ReplicaSet
+# MongoDB Helm Values - 3-Node ReplicaSet (DEPRECATED - kept for reference)
 #
-# SWARM EQUIVALENT: Your deployments/mongo-stack/stack.yaml runs a SINGLE MongoDB:
-#   services:
-#     mongodb:
-#       image: mongo:8.2.3
-#       volumes: [mongodb_data:/data/db]
+# This file is no longer used. MongoDB is now managed by the MongoDB Community
+# Operator via databases/mongodb/mongodb.yaml (MongoDBCommunity CR).
 #
-# This K8s version runs 3 nodes as a ReplicaSet:
-#   - 1 Primary (accepts writes)
-#   - 2 Secondaries (accept reads, auto-promoted if primary dies)
+# See mongodb.yaml for the current setup and install instructions.
 #
-# Install with:
-#   helm install mongodb bitnami/mongodb -n databases -f helm-values.yaml
-#
-# The Helm chart creates:
-#   - StatefulSet: mongodb-0, mongodb-1, mongodb-2
-#   - Headless Service: mongodb-headless.databases.svc (for replica discovery)
-#   - Regular Service: mongodb.databases.svc (connects to primary only)
-#   - PVCs: 3 x 8Gi persistent volumes
+# PREVIOUS SETUP (Bitnami Helm chart):
+#   kubectl apply -f databases/mongodb/secrets.yaml
+#   helm install mongodb oci://registry-1.docker.io/cloudpirates/mongodb -f databases/mongodb/helm-values.yaml -n databases
 
-architecture: replicaset
 replicaCount: 3
 
 auth:
-  rootUser: root
-  rootPassword: "secret"
+  enabled: true
+  rootUsername: root
+  existingSecret: mongodb-secret
+  existingSecretPasswordKey: MONGODB_ROOT_PASSWORD
 
 persistence:
-  size: 8Gi
+  enabled: true
+  size: 10Gi
 
 resources:
   limits:
-    memory: 1Gi
+    cpu: 500m
+    memory: 2Gi
   requests:
-    memory: 256Mi
+    memory: 128Mi
     cpu: 100m
+
+# replicaSet:
+#   enabled: true
+#   arbiter:
+#     enabled: true
+
+# persistence:
+#   enabled: false
+
+# auth:
+#   enabled: false
+
+# resources:
+#   limits:
+#     cpu: 500m
+#     memory: 512Mi
+#   requests:
+#     cpu: 100m
+#     memory: 128Mi

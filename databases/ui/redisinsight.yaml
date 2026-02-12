@@ -19,7 +19,7 @@
 #   Port: 6379
 #   Password: secret
 #
-# Apply with: kubectl apply -f redisinsight.yaml
+# Apply with: kubectl apply -f databases/ui/redisinsight.yaml
 
 apiVersion: apps/v1
 kind: Deployment

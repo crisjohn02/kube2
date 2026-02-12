@@ -9,13 +9,13 @@
 #         ME_CONFIG_MONGODB_ADMINUSERNAME: ssr-admin
 #         ME_CONFIG_BASICAUTH_USERNAME: ssr-admin
 #
-# The K8s version is almost identical - just the hostname changes
-# from "mongodb" (Swarm service name) to "mongodb" (K8s service in same namespace).
+# The K8s version connects to the MongoDB Community Operator's headless service.
+# The operator creates a service named "mongodb-svc" (CR name + "-svc" suffix).
 #
-# Access: http://mongo-express.localhost (via Traefik Ingress)
-# Login:  admin / secret
+# Access: http://mongo.test (via Traefik Ingress)
+# Login:  root / secret
 #
-# Apply with: kubectl apply -f mongo-express.yaml
+# Apply with: kubectl apply -f databases/ui/mongo-express.yaml
 
 apiVersion: apps/v1
 kind: Deployment
@@ -38,16 +38,14 @@ spec:
           ports:
             - containerPort: 8081
           env:
-            # MongoDB connection
-            # Same namespace so short name works. Points to the primary.
-            # Connect to MongoDB primary via headless service DNS
-            # Format: <pod-name>.<headless-service>.<namespace>.svc
+            # MongoDB connection via Community Operator headless service
+            # Service name is "<cr-name>-svc", replicaSet name matches CR name
             - name: ME_CONFIG_MONGODB_URL
-              value: "mongodb://root:secret@mongodb-0.mongodb-headless:27017/admin"
+              value: "mongodb://root:secret@mongodb-svc:27017/admin?replicaSet=mongodb"
 
             # mongo-express login credentials (to access the UI itself)
             - name: ME_CONFIG_BASICAUTH_USERNAME
-              value: "admin"
+              value: "root"
             - name: ME_CONFIG_BASICAUTH_PASSWORD
               value: "secret"
           resources:
