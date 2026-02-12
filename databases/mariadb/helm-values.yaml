@@ -18,15 +18,13 @@
 #   - Secrets: auto-generated from passwords below
 #
 # IMPORTANT: Apply the Secret first, then install the Helm chart:
-#   kubectl apply -f secret.yaml
-#   helm install mariadb-cluster mariadb-operator/mariadb-operator -n databases -f helm-values.yaml
+#   kubectl apply -f databases/mariadb/secret.yaml - to create the secret
 
 # To install MariaDB operator, run:
-# kubectl apply -f databases/mariadb/secret.yaml - to create the secret
 # helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator - to add the repository
 # helm install mariadb-operator-crds mariadb-operator/mariadb-operator-crds - to install the CRDs
 # helm install mariadb-operator mariadb-operator/mariadb-operator - to install the operator
-# helm install mariadb-cluster mariadb-operator/mariadb-cluster -n databases -f databases/mariadb/helm-values.yaml - to install the cluster
+# helm install mariadb-cluster mariadb-operator/mariadb-cluster --namespace databases --create-namespace -f databases/mariadb/helm-values.yaml - to install the cluster
 
 # In the following example the referenced secrets are managed externally.
 mariadb:
@@ -41,6 +39,12 @@ mariadb:
     enabled: true
 databases:
   - name: fluent
+    characterSet: utf8
+    collate: utf8_general_ci
+    cleanupPolicy: Delete
+    requeueInterval: 10h
+    retryInterval: 30s
+  - name: timesheet
     characterSet: utf8
     collate: utf8_general_ci
     cleanupPolicy: Delete

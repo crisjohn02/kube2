@@ -131,10 +131,7 @@ In your Swarm config (`traefik-stack/config/traefik.yaml`), you have certificate
 
 ```bash
 helm repo add jetstack https://charts.jetstack.io
-helm install cert-manager jetstack/cert-manager \
-  --namespace cert-manager \
-  --create-namespace \
-  --set crds.enabled=true
+helm install cert-manager -f infrastructure/cert-manager/values.yaml jetstack/cert-manager --namespace cert-manager --create-namespace
 ```
 
 Then create issuers:
@@ -158,7 +155,7 @@ spec:
 ```
 
 ```bash
-kubectl apply -f cert-issuer.yaml
+kubectl apply -f infrastructure/cert-manager/cluster-issuer.yaml
 ```
 
 Now any Ingress with `cert-manager.io/cluster-issuer: letsencrypt-prod` annotation gets automatic TLS.

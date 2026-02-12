@@ -3,26 +3,30 @@
 #   - 2 Secondaries (accept reads, auto-promoted if primary dies)
 #   - Operator handles lifecycle, failover, and user management
 #
+# Apply secrets first:
+#   kubectl apply -f databases/mongodb/secrets.yaml - to create the secret
+#
 # Install the operator first:
 #   helm repo add percona https://percona.github.io/percona-helm-charts/
 #   helm repo update
-#   helm install my-operator percona/psmdb-operator --namespace databases
+#   helm install mongodb-operator percona/psmdb-operator --namespace databases
 #   helm install mongodb-cluster -f databases/mongodb/percona-values.yaml percona/psmdb-db --namespace databases
-
+#
 # To check the operator and percona server for mongodb pods status:
 #   kubectl get psmdb -n databases
 #   kubectl get pods -n databases
 
-allowUnsafeConfigurations: true
 sharding:
   enabled: false
-replsets:
-- name: rs0
-  size: 3
-  volumeSpec:
-    pvc:
-      resources:
-        requests:
-          storage: 10Gi
-backup:
-  enabled: false
+
+users:
+  - name: root
+    db: admin
+    passwordSecretRef: 
+      name: mongodb-secret
+      key: password
+    roles:
+      - name: clusterAdmin
+        db: admin
+      - name: userAdminAnyDatabase
+        db: admin

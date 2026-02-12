@@ -13,7 +13,7 @@
 # Access: http://phpmyadmin.localhost (via Traefik Ingress)
 # Login:  root / secret
 #
-# Apply with: kubectl apply -f phpmyadmin.yaml
+# Apply with: kubectl apply -f databases/ui/phpmyadmin.yaml
 
 apiVersion: apps/v1
 kind: Deployment
