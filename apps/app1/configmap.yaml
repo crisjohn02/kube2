@@ -19,46 +19,86 @@
 #   Environment variables from ConfigMap override baked .env values.
 #
 # Apply with: kubectl apply -f configmap.yaml
+# kubectl apply -f apps/app1/configmap.yaml
 
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: laravel-app-config
-  namespace: fluent
+  namespace: apps
 data:
   # ---- App settings (override if different from baked .env) ----
   APP_NAME: "LaravelApp"
   APP_ENV: "production"
   APP_DEBUG: "false"
-  APP_URL: "https://laravel-app.test"
+  APP_URL: "http://app1.test"
+
+  APP_LOCALE: "en"
+  APP_FALLBACK_LOCALE: "en"
+  APP_FAKER_LOCALE: "en_US"
+  APP_MAINTENANCE_DRIVER: "file"
+
+  BCRYPT_ROUNDS: "12"
+
+  LOG_CHANNEL: "stderr"
+  LOG_STACK: "single"
+  LOG_LEVEL: "debug"
+  LOG_DEPRECATIONS_CHANNEL: "null"
+
+
+  SESSION_LIFETIME: "120"
+  SESSION_ENCRYPT: "false"
+  SESSION_PATH: "/"
+  SESSION_DOMAIN: "null"
+
+  BROADCAST_CONNECTION: "pusher"
+  FILESYSTEM_DISK: "local"
+
+  CACHE_STORE: "redis"
+
+  MEMCACHED_HOST: "127.0.0.1"
 
   # ---- MariaDB Galera connection ----
   # Swarm:  DB_HOST=mariadb  (service name on web2 network)
   # K8s:    DB_HOST=mariadb-galera.databases.svc  (service.namespace.svc format)
-  DB_CONNECTION: "mysql"
-  DB_HOST: "mariadb.databases.svc"
+  DB_CONNECTION: "mariadb"
+  DB_HOST: "mariadb-cluster.databases.svc"
   DB_PORT: "3306"
-  DB_DATABASE: "laravel_app"
+  DB_DATABASE: "app1"
   DB_USERNAME: "root"
 
   # ---- Redis Sentinel connection ----
   # Swarm:  REDIS_HOST=redis
   # K8s:    REDIS_HOST=redis-master.databases.svc
-  REDIS_HOST: "redis.databases.svc"
+  REDIS_CLIENT: "phpredis"
+  REDIS_HOST: "redis-cluster-headless.databases.svc"
   REDIS_PORT: "6379"
 
   # ---- MongoDB ReplicaSet connection ----
   # Swarm:  MONGODB_HOST=mongodb
   # K8s:    MONGODB_HOST=mongodb-headless.databases.svc (headless for replica discovery)
-  MONGODB_HOST: "mongodb-headless.databases.svc"
+  MONGODB_HOST: "mongodb-cluster.databases.svc"
   MONGODB_PORT: "27017"
-  MONGODB_DATABASE: "laravel_app"
+  MONGODB_DATABASE: "app1"
 
   # ---- Cache / Session / Queue drivers ----
   CACHE_DRIVER: "redis"
   SESSION_DRIVER: "redis"
   QUEUE_CONNECTION: "redis"
 
-  # ---- Logging ----
-  LOG_CHANNEL: "stderr"
-  LOG_LEVEL: "info"
+  MAIL_MAILER: "log"
+  MAIL_SCHEME: "null"
+  MAIL_HOST: "127.0.0.1"
+  MAIL_PORT: "2525"
+  MAIL_USERNAME: "null"
+  MAIL_PASSWORD: "null"
+  MAIL_FROM_ADDRESS: "app1@example.com"
+  MAIL_FROM_NAME: "App1"
+
+  AWS_ACCESS_KEY_ID: "null"
+  AWS_SECRET_ACCESS_KEY: "null"
+  AWS_DEFAULT_REGION: "us-east-1"
+  AWS_BUCKET: "null"
+  AWS_USE_PATH_STYLE_ENDPOINT: "false"
+
+  VITE_APP_NAME: "App1"

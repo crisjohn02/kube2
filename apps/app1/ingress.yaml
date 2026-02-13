@@ -1,0 +1,28 @@
+# Ingress - External HTTP routing
+#
+# SWARM EQUIVALENT: This replaces Traefik labels on your Swarm services.
+# In Swarm, you add labels like traefik.http.routers.app.rule=Host(`app1.test`)
+# In K8s, you create an Ingress resource that Traefik watches via the K8s API.
+#
+# Apply with: kubectl apply -f apps/app1/ingress.yaml
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: app1
+  namespace: apps
+  labels:
+    app: app1
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: app1.test
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: app1
+                port:
+                  number: 9000

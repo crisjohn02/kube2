@@ -1,0 +1,95 @@
+# Deployment - Runs the Laravel app container(s)
+#
+# SWARM EQUIVALENT: This replaces the service definition in your stack.yaml.
+# In Swarm, one service block handles everything. In K8s, a Deployment
+# handles "what container to run and how many replicas."
+#
+# Your image uses PHP Swoole (Octane) listening on port 9000.
+# The image is pulled from your private registry using imagePullSecrets.
+#
+# PREREQUISITES (already applied):
+#   kubectl apply -f apps/app1/namespace.yaml
+#   kubectl apply -f apps/app1/secrets.yaml
+#   kubectl apply -f apps/app1/configmap.yaml
+#   kubectl create secret docker-registry regcred --namespace=app1 ...
+#
+# Apply with: kubectl apply -f apps/app1/deployment.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app1
+  namespace: apps
+  labels:
+    app: app1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: app1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1             # Start new pod before killing old (like Swarm order: start-first)
+      maxUnavailable: 0       # Never have fewer than current replicas
+  template:
+    metadata:
+      labels:
+        app: app1
+    spec:
+      containers:
+        - name: app1
+          image: hub.connoisseur-suite.co.uk/test/laravel-app:latest
+          ports:
+            - containerPort: 9000
+          envFrom:
+            - configMapRef:
+                name: laravel-app-config
+            - secretRef:
+                name: app1-secrets
+          resources:
+            limits:
+              memory: "1Gi"
+            requests:
+              memory: "1Gi"
+              cpu: "250m"
+          startupProbe:
+            tcpSocket:
+              port: 9000
+            periodSeconds: 5
+            failureThreshold: 12     # 12 x 5s = 60s startup window
+          readinessProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+      imagePullSecrets:
+        - name: regcred
+---
+# Service - Internal DNS and load balancing
+#
+# This creates the DNS name: app1.app1.svc.cluster.local
+# Other pods in the cluster can reach the app at this address.
+#
+# SWARM EQUIVALENT: In Swarm, services on the same overlay network
+# find each other by service name. In K8s, a Service object provides
+# the same DNS-based discovery.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: app1
+  namespace: apps
+  labels:
+    app: app1
+spec:
+  selector:
+    app: app1
+  ports:
+    - port: 9000
+      targetPort: 9000

@@ -14,11 +14,12 @@
 #   - Easy cleanup: kubectl delete namespace fluent (removes everything inside)
 #
 # Apply with: kubectl apply -f namespace.yaml
+# kubectl apply -f apps/app1/namespace.yaml
 
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: fluent
+  name: apps
   labels:
-    app: fluent
+    app: apps
     environment: production

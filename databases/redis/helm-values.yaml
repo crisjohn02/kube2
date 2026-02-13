@@ -15,7 +15,7 @@
 #
 # Install with:
 #   kubectl apply -f databases/redis/secrets.yaml
-#   helm install redis oci://registry-1.docker.io/cloudpirates/redis -f databases/redis/helm-values.yaml -n databases
+#   helm install redis-cluster oci://registry-1.docker.io/cloudpirates/redis -f databases/redis/helm-values.yaml -n databases
 #
 # The Helm chart creates:
 #   - StatefulSet: redis-master-0 + redis-replicas-0, redis-replicas-1
