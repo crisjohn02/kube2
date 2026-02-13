@@ -7,7 +7,7 @@
 #
 # PREVIOUS SETUP (Bitnami Helm chart):
 #   kubectl apply -f databases/mongodb/secrets.yaml
-#   helm install mongodb oci://registry-1.docker.io/cloudpirates/mongodb -f databases/mongodb/helm-values.yaml -n databases
+#   helm install mongodb-cluster oci://registry-1.docker.io/cloudpirates/mongodb -f databases/mongodb/cloudpirates-values.yaml -n databases
 
 replicaCount: 3
 
@@ -15,11 +15,11 @@ auth:
   enabled: true
   rootUsername: root
   existingSecret: mongodb-secret
-  existingSecretPasswordKey: MONGODB_ROOT_PASSWORD
+  existingSecretPasswordKey: password
 
 persistence:
   enabled: true
-  size: 10Gi
+  size: 5Gi
 
 resources:
   limits:
@@ -31,8 +31,6 @@ resources:
 
 # replicaSet:
 #   enabled: true
-#   arbiter:
-#     enabled: true
 
 # persistence:
 #   enabled: false

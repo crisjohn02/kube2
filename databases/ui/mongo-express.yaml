@@ -41,7 +41,7 @@ spec:
             # MongoDB connection via Community Operator headless service
             # Service name is "<cr-name>-svc", replicaSet name matches CR name
             - name: ME_CONFIG_MONGODB_URL
-              value: "mongodb://root:secret@mongodb-svc:27017/admin?replicaSet=mongodb"
+              value: "mongodb://root:secret@mongodb-cluster:27017/admin"
 
             # mongo-express login credentials (to access the UI itself)
             - name: ME_CONFIG_BASICAUTH_USERNAME

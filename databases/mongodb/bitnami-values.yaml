@@ -1,0 +1,31 @@
+# Install helm chart with:
+# helm install mongodb oci://registry-1.docker.io/bitnamicharts/mongodb -f databases/mongodb/bitnami-values.yaml -n databases
+
+architecture: replicaset
+
+replicaCount: 3
+
+replicaSet:
+  enabled: true
+  arbiter:
+    enabled: true
+
+auth:
+  enabled: true
+  rootUser: root
+  existingSecret: mongodb-secret
+  existingSecretPasswordKey: password
+
+tls:
+  enabled: true
+
+persistence:
+  enabled: false
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
