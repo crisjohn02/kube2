@@ -113,6 +113,22 @@ return [
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
 
+        'mongodb' => [
+            'driver' => 'mongodb',
+            'dsn' => env('MONGODB_URI', 'mongodb://mongodb:27017'),
+            'database' => env('MONGODB_DATABASE', 'app1'),
+            'username' => env('MONGODB_USERNAME', ''),
+            'password' => env('MONGODB_PASSWORD', ''),
+            'options' => [
+                // 'authMechanism' => 'SCRAM-SHA-256',
+                'authSource' => env('MONGODB_AUTHENTICATION_DATABASE', 'admin'),
+                // 'replicaSet' => env('MONGODB_REPLICA_SET', 'replicaset'),
+                // 'readPreference' => 'secondaryPreferred',
+                // 'readConcern' => 'majority',
+                // 'writeConcern' => 'majority'
+            ],
+        ],
+
     ],
 
     /*
@@ -163,6 +179,19 @@ return [
             'backoff_algorithm' => env('REDIS_BACKOFF_ALGORITHM', 'decorrelated_jitter'),
             'backoff_base' => env('REDIS_BACKOFF_BASE', 100),
             'backoff_cap' => env('REDIS_BACKOFF_CAP', 1000),
+        ],
+
+        'clusters' => [
+            'default' => [
+                [
+                    'url' => env('REDIS_URL'),
+                    'host' => env('REDIS_HOST', '127.0.0.1'),
+                    'username' => env('REDIS_USERNAME'),
+                    'password' => env('REDIS_PASSWORD'),
+                    'port' => env('REDIS_PORT', '6379'),
+                    'database' => env('REDIS_DB', '0'),
+                ]
+            ]
         ],
 
         'cache' => [

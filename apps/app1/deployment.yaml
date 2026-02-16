@@ -39,7 +39,7 @@ spec:
     spec:
       containers:
         - name: app1
-          image: hub.connoisseur-suite.co.uk/test/laravel-app:latest
+          image: laravel-app:latest
           ports:
             - containerPort: 9000
           envFrom:

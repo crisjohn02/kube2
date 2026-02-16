@@ -1,0 +1,29 @@
+# Migration Job - Runs on app1 namespace
+#
+# This job runs the Laravel migration command on app1.
+# It uses the laravel-app-config ConfigMap for environment variables.
+#
+# Apply with: kubectl apply -f migration.yaml
+# kubectl apply -f apps/app1/migration.yaml
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: app1-migration
+  namespace: apps
+spec:
+  template:
+    spec:
+      containers:
+        - name: app1-migration
+          image: hub.connoisseur-suite.co.uk/test/laravel-app:latest
+          command: ["php", "artisan", "migrate", "--force"]
+          envFrom:
+            - configMapRef:
+                name: laravel-app-config
+            - secretRef:
+                name: app1-secrets
+      imagePullSecrets:
+        - name: regcred
+      restartPolicy: Never
+  backoffLimit: 0

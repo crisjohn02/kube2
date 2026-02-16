@@ -71,13 +71,14 @@ data:
   # Swarm:  REDIS_HOST=redis
   # K8s:    REDIS_HOST=redis-master.databases.svc
   REDIS_CLIENT: "phpredis"
-  REDIS_HOST: "redis-cluster-headless.databases.svc"
+  REDIS_HOST: "redis-cluster.databases.svc"
   REDIS_PORT: "6379"
 
   # ---- MongoDB ReplicaSet connection ----
   # Swarm:  MONGODB_HOST=mongodb
   # K8s:    MONGODB_HOST=mongodb-headless.databases.svc (headless for replica discovery)
   MONGODB_HOST: "mongodb-cluster.databases.svc"
+  MONGODB_URI: "mongodb://mongodb-cluster.databases.svc:27017"
   MONGODB_PORT: "27017"
   MONGODB_DATABASE: "app1"
 
