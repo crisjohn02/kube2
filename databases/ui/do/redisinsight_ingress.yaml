@@ -1,0 +1,26 @@
+# kubectl apply -f databases/ui/do/redisinsight_ingress.yaml
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: redisinsight-ingress
+  namespace: databases
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    kubernetes.io/ingressClassName: "traefik"
+spec:
+  tls:
+  - hosts:
+    - redis.jellibean.co.uk
+    secretName: redisinsight-tls
+  rules:
+    - host: redis.jellibean.co.uk
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: redisinsight
+                port:
+                  number: 5540
