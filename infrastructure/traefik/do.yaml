@@ -1,0 +1,31 @@
+.DOTrustedIPs: &DOTrustedIPs
+  - 127.0.0.1/32
+  # IP range Load Balancer is on
+  - 10.0.0.0/8
+  # IP range of private (VPC) interface - CHANGE THIS TO YOUR NETWORK SETTINGS
+  # This is needed when "externalTrafficPolicy: Cluster" is specified, as inbound traffic from the load balancer to a Traefik instance could be redirected from another cluster node on the way through.
+  - 172.16.0.0/12
+
+service:
+  enabled: true
+  type: LoadBalancer
+  annotations:
+    # This will tell DigitalOcean to enable the proxy protocol.
+    # Note that only REGIONAL type loadbalancers are supported.
+    # service.beta.kubernetes.io/do-loadbalancer-type: "REGIONAL"
+    service.beta.kubernetes.io/do-loadbalancer-enable-proxy-protocol: "true"
+  spec:
+    # This is the default and should stay as cluster to keep the DO health checks working.
+    externalTrafficPolicy: Cluster
+
+ports:
+  web:
+    forwardedHeaders:
+      trustedIPs: *DOTrustedIPs
+    proxyProtocol:
+      trustedIPs: *DOTrustedIPs
+  websecure:
+    forwardedHeaders:
+      trustedIPs: *DOTrustedIPs
+    proxyProtocol:
+      trustedIPs: *DOTrustedIPs
