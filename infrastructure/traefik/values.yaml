@@ -12,8 +12,8 @@ gateway:
   enabled: false
 ingressRoute:
   dashboard:
-    enabled: true
-    matchRule: Host(`traefik.jellibean.co.uk`)   # Access dashboard at http://traefik.localhost
+    enabled: false
+    # matchRule: Host(`traefik.jellibean.co.uk`)   # Access dashboard at http://traefik.localhost
 
 autoscaling:
   enabled: true
