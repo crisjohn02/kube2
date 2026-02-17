@@ -24,7 +24,7 @@
 # helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator - to add the repository
 # helm install mariadb-operator-crds mariadb-operator/mariadb-operator-crds - to install the CRDs
 # helm install mariadb-operator mariadb-operator/mariadb-operator - to install the operator
-# helm install mariadb-cluster mariadb-operator/mariadb-cluster --namespace databases --create-namespace -f databases/mariadb/helm-values.yaml - to install the cluster
+# helm install mariadb-cluster mariadb-operator/mariadb-cluster --namespace databases --create-namespace -f databases/mariadb/do/helm-values.yaml - to install the cluster
 
 # In the following example the referenced secrets are managed externally.
 mariadb:
