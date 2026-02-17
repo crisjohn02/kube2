@@ -15,7 +15,7 @@
 # Access: http://mongo.test (via Traefik Ingress)
 # Login:  root / secret
 #
-# Apply with: kubectl apply -f databases/ui/mongo-express.yaml
+# Apply with: kubectl apply -f databases/ui/do/mongo-express.yaml
 
 apiVersion: apps/v1
 kind: Deployment
