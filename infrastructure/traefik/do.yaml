@@ -1,10 +1,8 @@
-# .DOTrustedIPs: &DOTrustedIPs
-#   - 127.0.0.1/32
-#   # IP range Load Balancer is on
-#   - 10.0.0.0/8
-#   # IP range of private (VPC) interface - CHANGE THIS TO YOUR NETWORK SETTINGS
-#   # This is needed when "externalTrafficPolicy: Cluster" is specified, as inbound traffic from the load balancer to a Traefik instance could be redirected from another cluster node on the way through.
-#   - 172.16.0.0/12
+_DOTrustedIPs: &DOTrustedIPs
+  - 127.0.0.1/32
+  - 10.106.0.0/20    # VPC / Node network
+  - 10.108.0.0/16    # Pod network
+  - 10.109.0.0/19    # Service network
 
 service:
   enabled: true
