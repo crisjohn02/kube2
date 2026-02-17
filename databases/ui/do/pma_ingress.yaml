@@ -4,6 +4,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: pma-ingress
+  namespace: databases
   annotations:
     cert-manager.io/cluster-issuer: "letsencrypt-prod"
     kubernetes.io/ingressClassName: "traefik"
@@ -21,6 +22,5 @@ spec:
             backend:
               service:
                 name: phpmyadmin
-                namespace: databases
                 port:
                   number: 80
