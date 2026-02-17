@@ -20,6 +20,7 @@ spec:
             path: "/"
             backend:
               service:
-                name: phpmyadmin.databases.svc
+                name: phpmyadmin
+                namespace: databases
                 port:
                   number: 80
