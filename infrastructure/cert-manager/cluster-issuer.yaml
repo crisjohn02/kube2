@@ -16,13 +16,14 @@ apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
   name: letsencrypt-prod
+  namespace: cert-manager
 spec:
   acme:
     # Let's Encrypt production endpoint
     server: https://acme-v02.api.letsencrypt.org/directory
 
     # Your email - Let's Encrypt sends expiry warnings here
-    email: your-email@domain.com
+    email: cris.tarpin@splitsecondresearch.com
 
     # Where to store the ACME account private key (as a K8s Secret)
     # In Swarm, this was a file: /ssl-certs/acme.json
@@ -45,6 +46,7 @@ apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
   name: letsencrypt-staging
+  namespace: cert-manager
 spec:
   acme:
     server: https://acme-staging-v02.api.letsencrypt.org/directory

@@ -8,8 +8,6 @@
 # To apply changes: helm upgrade traefik traefik/traefik -n traefik -f values.yaml
 
 # Dashboard - equivalent to your Swarm Traefik dashboard labels
-gateway:
-  enabled: false
 ingressRoute:
   dashboard:
     enabled: false

@@ -113,6 +113,8 @@ In your Swarm config (`traefik-stack/config/traefik.yaml`), you have certificate
 ```bash
 helm repo add jetstack https://charts.jetstack.io
 helm install cert-manager -f infrastructure/cert-manager/values.yaml jetstack/cert-manager --namespace cert-manager --create-namespace
+
+in DigitalOcean -  kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.7.1/cert-manager.yaml
 ```
 
 Then create the ClusterIssuer (see `infrastructure/cert-manager/cluster-issuer.yaml`):
