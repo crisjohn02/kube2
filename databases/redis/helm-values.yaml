@@ -23,7 +23,8 @@
 #   - Service: redis-replicas.databases.svc (load-balances reads)
 #   - PVCs: 3 x 8Gi persistent volumes
 
-architecture: replication
+architecture: cluster
+clusterReplicaCount: 1
 
 replicaCount: 3
 

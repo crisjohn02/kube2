@@ -34,7 +34,7 @@ metadata:
   name: mongodb
   namespace: databases
 spec:
-  members: 3
+  members: 1
   type: ReplicaSet
   version: "8.0.4"
 
