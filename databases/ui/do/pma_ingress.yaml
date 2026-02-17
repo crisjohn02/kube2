@@ -1,0 +1,23 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pma-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    kubernetes.io/ingressClassName: "traefik"
+spec:
+  tls:
+  - hosts:
+    - pma.jellibean.co.uk
+    secretName: pma-tls
+  rules:
+    - host: pma.jellibean.co.uk
+      http:
+        paths:
+          - pathType: Prefix
+            path: "/"
+            backend:
+              service:
+                name: phpmyadmin
+                port:
+                  number: 80

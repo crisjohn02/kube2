@@ -1,0 +1,65 @@
+# phpMyAdmin - MariaDB Web UI
+#
+# SWARM EQUIVALENT: You don't have phpMyAdmin in Swarm, but it's similar
+# to your mongo-express service in deployments/mongo-stack/stack.yaml:
+#   services:
+#     mongo-express:
+#       image: mongo-express:1.0.2
+#       environment:
+#         ME_CONFIG_MONGODB_SERVER: mongodb
+#
+# Same idea - a web UI that connects to the database via internal DNS.
+#
+# Access: http://phpmyadmin.localhost (via Traefik Ingress)
+# Login:  root / secret
+#
+# Apply with: kubectl apply -f databases/ui/phpmyadmin.yaml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: phpmyadmin
+  namespace: databases
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: phpmyadmin
+  template:
+    metadata:
+      labels:
+        app: phpmyadmin
+    spec:
+      containers:
+        - name: phpmyadmin
+          image: phpmyadmin:latest
+          ports:
+            - containerPort: 80
+          env:
+            # Points to the MariaDB Galera service in the same namespace
+            # Since phpMyAdmin is also in "databases" namespace, we can use
+            # the short name. Cross-namespace would need: mariadb-galera.databases.svc
+            # to get the service name of the cluster run: kubectl get svc -n databases
+            - name: PMA_HOST
+              value: "mariadb-cluster"
+            - name: PMA_PORT
+              value: "3306"
+            - name: MYSQL_ROOT_PASSWORD
+              value: "secret"
+          resources:
+            limits:
+              memory: "256Mi"
+            requests:
+              memory: "128Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: phpmyadmin
+  namespace: databases
+spec:
+  selector:
+    app: phpmyadmin
+  ports:
+    - port: 80
+      targetPort: 80

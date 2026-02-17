@@ -1,0 +1,100 @@
+# MariaDB Galera Helm Values
+#
+# SWARM EQUIVALENT: You don't have clustered MariaDB in Swarm.
+# This is an upgrade - 3 nodes, multi-master, synchronous replication.
+#
+# Galera Cluster means:
+#   - ALL 3 nodes accept reads AND writes (multi-master)
+#   - Data is synchronously replicated (no data loss on failover)
+#   - Lose 1 node? Other 2 keep serving. Zero downtime maintenance.
+#
+# Install with:
+#   helm install mariadb bitnami/mariadb-galera -n databases -f helm-values.yaml
+#
+# The Helm chart creates:
+#   - StatefulSet: mariadb-galera-0, mariadb-galera-1, mariadb-galera-2
+#   - Service: mariadb-galera.databases.svc (load-balances across all nodes)
+#   - PVCs: 3 x 8Gi persistent volumes (one per node)
+#   - Secrets: auto-generated from passwords below
+#
+# IMPORTANT: Apply the Secret first, then install the Helm chart:
+#   kubectl apply -f databases/mariadb/secret.yaml - to create the secret
+
+# To install MariaDB operator, run:
+# helm repo add mariadb-operator https://helm.mariadb.com/mariadb-operator - to add the repository
+# helm install mariadb-operator-crds mariadb-operator/mariadb-operator-crds - to install the CRDs
+# helm install mariadb-operator mariadb-operator/mariadb-operator - to install the operator
+# helm install mariadb-cluster mariadb-operator/mariadb-cluster --namespace databases --create-namespace -f databases/mariadb/helm-values.yaml - to install the cluster
+
+# In the following example the referenced secrets are managed externally.
+mariadb:
+  rootPasswordSecretKeyRef:
+    name: mariadb-secret
+    key: MARIADB_ROOT_PASSWORD
+    generate: false
+  storage:
+    size: 1Gi
+    resizeInUseVolumes: true
+    storageClass: do-block-storage
+  replicas: 2
+  galera:
+    enabled: true
+databases:
+  - name: fluent
+    characterSet: utf8
+    collate: utf8_general_ci
+    cleanupPolicy: Delete
+    requeueInterval: 10h
+    retryInterval: 30s
+  - name: timesheet
+    characterSet: utf8
+    collate: utf8_general_ci
+    cleanupPolicy: Delete
+    requeueInterval: 10h
+    retryInterval: 30s
+users:
+  - name: root
+    passwordSecretKeyRef:
+      name: mariadb-secret
+      key: MARIADB_PASSWORD
+    host: "%"
+    cleanupPolicy: Delete
+    requeueInterval: 10h
+    retryInterval: 30s
+grants:
+  - name: root
+    privileges:
+      - "ALL PRIVILEGES"
+    database: "*"
+    table: "*"
+    username: root
+    grantOption: true
+    host: "%"
+    cleanupPolicy: Delete
+    requeueInterval: 10h
+    retryInterval: 30s
+# physicalBackups:
+#   - name: physicalbackup
+#     schedule:
+#       cron: "0 0 * * *"
+#       suspend: false
+#       immediate: true
+#     compression: gzip
+#     maxRetention: 720h
+#     storage:
+#       s3:
+#         bucket: physicalbackups
+#         prefix: mariadb
+#         endpoint: minio.minio.svc.cluster.local:9000
+#         region:  us-east-1
+#         accessKeyIdSecretKeyRef:
+#           name: minio
+#           key: access-key-id
+#         secretAccessKeySecretKeyRef:
+#           name: minio
+#           key: secret-access-key
+#         tls:
+#           enabled: true
+#           caSecretKeyRef:
+#             name: minio-ca
+#             key: ca.crt
