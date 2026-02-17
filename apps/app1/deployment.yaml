@@ -39,7 +39,7 @@ spec:
     spec:
       containers:
         - name: app1
-          image: laravel-app:latest
+          image: laravel-app:v1.0.0
           ports:
             - containerPort: 9000
           envFrom:

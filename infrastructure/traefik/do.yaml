@@ -1,3 +1,5 @@
+# helm install traefik traefik/traefik -f infrastructure/traefik/do.yaml --skip-crds
+
 service:
   enabled: true
   type: LoadBalancer
