@@ -1,3 +1,5 @@
+# kubectl apply -f databases/ui/do/pma_ingress.yaml
+
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:

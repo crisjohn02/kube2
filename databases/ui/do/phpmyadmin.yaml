@@ -13,7 +13,7 @@
 # Access: http://phpmyadmin.localhost (via Traefik Ingress)
 # Login:  root / secret
 #
-# Apply with: kubectl apply -f databases/ui/phpmyadmin.yaml
+# Apply with: kubectl apply -f databases/ui/do/phpmyadmin.yaml
 
 apiVersion: apps/v1
 kind: Deployment
@@ -44,7 +44,7 @@ spec:
               value: "mariadb-cluster"
             - name: PMA_PORT
               value: "3306"
-            - name: MYSQL_ROOT_PASSWORD
+            - name: R0x70T9eZe0VnO6HcxEps9GlqG1jBvsL9U0mqWN9
               value: "secret"
           resources:
             limits:
