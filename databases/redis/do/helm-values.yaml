@@ -1,0 +1,44 @@
+# Redis Helm Values - Master + 2 Replicas with Sentinel
+#
+# SWARM EQUIVALENT: Your deployments/redis-stack/prod/redis.yml runs a SINGLE Redis:
+#   services:
+#     redis:
+#       image: redis:8.4-alpine
+#       command: redis-server --appendonly yes
+#       healthcheck:
+#         test: ["CMD", "redis-cli", "ping"]
+#
+# This K8s version runs 3 nodes with Sentinel (automatic failover):
+#   - 1 Master (accepts reads + writes)
+#   - 2 Replicas (accept reads, promoted to master if master dies)
+#   - 3 Sentinel processes (monitor master, trigger failover)
+#
+# Install with:
+#   kubectl apply -f databases/redis/do/secrets.yaml
+#   helm install redis-cluster oci://registry-1.docker.io/cloudpirates/redis -f databases/redis/do/helm-values.yaml -n databases
+#
+# The Helm chart creates:
+#   - StatefulSet: redis-master-0 + redis-replicas-0, redis-replicas-1
+#   - Service: redis-master.databases.svc (always points to current master)
+#   - Service: redis-replicas.databases.svc (load-balances reads)
+#   - PVCs: 3 x 8Gi persistent volumes
+
+architecture: replication
+
+replicaCount: 1
+
+sentinel:
+  enabled: true
+  quorum: 2
+
+persistence:
+  enabled: true
+  size: 1Gi
+  storageClassName: do-block-storage
+
+auth:
+  enabled: true
+  existingSecret: redis-secret
+  existingSecretPasswordKey: REDIS_PASSWORD
+
+

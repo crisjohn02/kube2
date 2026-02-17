@@ -23,8 +23,7 @@
 #   - Service: redis-replicas.databases.svc (load-balances reads)
 #   - PVCs: 3 x 8Gi persistent volumes
 
-architecture: cluster
-clusterReplicaCount: 1
+architecture: replication
 
 replicaCount: 3
 
@@ -34,7 +33,7 @@ sentinel:
 
 persistence:
   enabled: true
-  size: 8Gi
+  size: 1Gi
 
 auth:
   enabled: true
