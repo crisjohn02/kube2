@@ -1,29 +1,35 @@
-_DOTrustedIPs: &DOTrustedIPs
-  - 127.0.0.1/32
-  - 10.106.0.0/20    # VPC / Node network
-  - 10.108.0.0/16    # Pod network
-  - 10.109.0.0/19    # Service network
-
 service:
   enabled: true
   type: LoadBalancer
   annotations:
-    # This will tell DigitalOcean to enable the proxy protocol.
-    # Note that only REGIONAL type loadbalancers are supported.
-    # service.beta.kubernetes.io/do-loadbalancer-type: "REGIONAL"
     service.beta.kubernetes.io/do-loadbalancer-enable-proxy-protocol: "true"
   spec:
-    # This is the default and should stay as cluster to keep the DO health checks working.
     externalTrafficPolicy: Cluster
 
 ports:
   web:
     forwardedHeaders:
-      trustedIPs: *DOTrustedIPs
+      trustedIPs:
+        - 127.0.0.1/32
+        - 10.106.0.0/20
+        - 10.108.0.0/16
+        - 10.109.0.0/19
     proxyProtocol:
-      trustedIPs: *DOTrustedIPs
+      trustedIPs:
+        - 127.0.0.1/32
+        - 10.106.0.0/20
+        - 10.108.0.0/16
+        - 10.109.0.0/19
   websecure:
     forwardedHeaders:
-      trustedIPs: *DOTrustedIPs
+      trustedIPs:
+        - 127.0.0.1/32
+        - 10.106.0.0/20
+        - 10.108.0.0/16
+        - 10.109.0.0/19
     proxyProtocol:
-      trustedIPs: *DOTrustedIPs
+      trustedIPs:
+        - 127.0.0.1/32
+        - 10.106.0.0/20
+        - 10.108.0.0/16
+        - 10.109.0.0/19
