@@ -37,6 +37,8 @@ mariadb:
   replicas: 3
   galera:
     enabled: true
+  metrics:
+    enabled: true
 databases:
   - name: fluent
     characterSet: utf8

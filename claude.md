@@ -394,6 +394,7 @@ app1/             ← app1 (Laravel/Swoole on port 9000)
 registry/         ← Private Docker registry credentials
 traefik/          ← Ingress controller
 cert-manager/     ← TLS automation
+metrics/          ← Prometheus + Grafana + Alertmanager + node-exporter
 ```
 
 ### 8.2 How Services Find Each Other
@@ -493,6 +494,151 @@ kubectl apply -k apps/app1/overlays/staging/
 ```
 
 This directly replaces your pattern of having `deployments/fluent-stack/stack.yaml` (base) + `deployments/fluent-stack/prod/` (overrides) + `deployments/fluent-stack/stage.yaml` (staging).
+
+---
+
+## Phase 10: Metrics (Prometheus + Grafana)
+
+**Why kube-prometheus-stack**: One Helm chart installs the full observability stack — Prometheus Operator, Prometheus, Alertmanager, Grafana (with 20+ pre-built dashboards), node-exporter, and kube-state-metrics. No manual `prometheus.yml` editing; config is driven by Kubernetes CRDs.
+
+| What | Does |
+|---|---|
+| Prometheus Operator | Watches for `ServiceMonitor` CRDs, auto-configures Prometheus |
+| Prometheus | Scrapes all pods, nodes, and K8s components |
+| Grafana | Dashboards — cluster overview, pod CPU/RAM, PVC usage, etc. |
+| Alertmanager | Routes alerts to Slack / email / PagerDuty |
+| node-exporter | DaemonSet — host CPU, RAM, disk, network per node |
+| kube-state-metrics | K8s object state (pod health, deployment replicas, etc.) |
+
+### 10.1 File Structure
+
+```
+metrics/
+├── namespace.yaml
+└── kube-prometheus-stack/
+    └── helm-values.yaml    ← All config: retention, storage, ingress, alert rules
+```
+
+### 10.2 Install
+
+```bash
+# 1. Create namespace
+kubectl apply -f metrics/namespace.yaml
+
+# 2. Edit the Grafana secret file, then apply it (do this before helm install)
+#    Open metrics/kube-prometheus-stack/grafana-secret.yaml and change the password
+kubectl apply -f metrics/kube-prometheus-stack/grafana-secret.yaml
+
+# 3. Install the stack (OCI registry — no helm repo add needed)
+helm install kube-prometheus-stack oci://ghcr.io/prometheus-community/charts/kube-prometheus-stack \
+  -n metrics \
+  -f metrics/kube-prometheus-stack/helm-values.yaml
+
+# Watch everything come up (takes ~60-120s)
+kubectl get pods -n metrics -w
+```
+
+### 10.3 Access the UIs
+
+Add these to your `/etc/hosts` (pointing at `minikube ip`):
+```
+192.168.49.2  grafana.test prometheus.test alertmanager.test
+```
+
+| UI | URL | Notes |
+|---|---|---|
+| Grafana | http://grafana.test | Main dashboard — login with your secret |
+| Prometheus | http://prometheus.test | Raw metrics / query UI (PromQL) |
+| Alertmanager | http://alertmanager.test | See and silence firing alerts |
+
+Or port-forward without DNS:
+```bash
+kubectl port-forward svc/kube-prometheus-stack-grafana 3000:80 -n metrics
+```
+
+### 10.4 Scraping Your Own Services (ServiceMonitor)
+
+The Operator discovers metrics endpoints via `ServiceMonitor` CRDs — no prometheus.yml editing needed.
+
+Your Redis already has `metrics.enabled: true` in `databases/redis/helm-values.yaml`. The Bitnami chart creates a `/metrics` endpoint and a `ServiceMonitor` automatically.
+
+To add metrics scraping for a custom app, create a `ServiceMonitor` alongside its deployment:
+
+```yaml
+# apps/app1/service-monitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: app1
+  namespace: app1
+  labels:
+    release: kube-prometheus-stack   # must match the Prometheus operator's label selector
+spec:
+  selector:
+    matchLabels:
+      app: app1
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+```
+
+```bash
+kubectl apply -f apps/app1/service-monitor.yaml
+# Prometheus picks it up within ~30s — no restart needed
+```
+
+### 10.5 Custom Alert Rules
+
+Add `PrometheusRule` CRDs to define your own alerts:
+
+```yaml
+# Example: alert when a pod has been restarting for > 5 minutes
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: app1-alerts
+  namespace: app1
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: app1
+      rules:
+        - alert: App1PodCrashLooping
+          expr: rate(kube_pod_container_status_restarts_total{namespace="app1"}[5m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Pod {{ $labels.pod }} is crash-looping"
+```
+
+### 10.6 Upgrade After Values Changes
+
+```bash
+helm upgrade kube-prometheus-stack oci://ghcr.io/prometheus-community/charts/kube-prometheus-stack \
+  -n metrics \
+  -f metrics/kube-prometheus-stack/helm-values.yaml
+```
+
+### 10.7 Useful Metrics Commands
+
+```bash
+# Check all metrics targets (what Prometheus is scraping)
+kubectl port-forward svc/kube-prometheus-stack-prometheus 9090:9090 -n metrics
+# Then open http://localhost:9090/targets
+
+# View Grafana logs
+kubectl logs -n metrics -l app.kubernetes.io/name=grafana -f
+
+# See all ServiceMonitors (what the operator discovered)
+kubectl get servicemonitors -A
+
+# Query PromQL from CLI (needs prometheus pod)
+kubectl exec -n metrics prometheus-kube-prometheus-stack-prometheus-0 -- \
+  promtool query instant http://localhost:9090 'up'
+```
 
 ---
 

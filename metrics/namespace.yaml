@@ -1,0 +1,13 @@
+# Namespace for the metrics stack (Prometheus + Grafana + Alertmanager)
+#
+# SWARM EQUIVALENT: In Swarm you'd deploy these as separate stacks.
+# Here everything lives in one namespace: prometheus-operator, Grafana, node-exporter, etc.
+#
+# Apply with: kubectl apply -f metrics/namespace.yaml
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: metrics
+  labels:
+    purpose: observability

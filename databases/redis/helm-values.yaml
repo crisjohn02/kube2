@@ -40,4 +40,9 @@ auth:
   existingSecret: redis-secret
   existingSecretPasswordKey: REDIS_PASSWORD
 
+metrics:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+
 

@@ -11,7 +11,44 @@
 ingressRoute:
   dashboard:
     enabled: false
-    # matchRule: Host(`traefik.jellibean.co.uk`)   # Access dashboard at http://traefik.localhost
+    # matchRule: Host(`traefik.test`)   # Access dashboard at http://traefik.localhost
+    # entryPoints: ["web"]
+additionalArguments:
+  - "--api.insecure=true"
+extraObjects:
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      name: traefik-api
+    spec:
+      type: ClusterIP
+      selector:
+        app.kubernetes.io/name: traefik
+        app.kubernetes.io/instance: traefik-default
+      ports:
+      - port: 8080
+        name: traefik
+        targetPort: 8080
+        protocol: TCP
+  - apiVersion: networking.k8s.io/v1
+    kind: Ingress
+    metadata:
+      name: traefik-dashboard
+      annotations:
+        traefik.ingress.kubernetes.io/router.entrypoints: web
+        # traefik.ingress.kubernetes.io/router.middlewares: default-traefik-dashboard-auth@kubernetescrd
+    spec:
+      rules:
+      - host: traefik.test
+        http:
+          paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: traefik-api
+                port:
+                  name: traefik
 
 autoscaling:
   enabled: true

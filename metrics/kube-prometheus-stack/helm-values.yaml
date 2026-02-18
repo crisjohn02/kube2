@@ -1,0 +1,399 @@
+# kube-prometheus-stack Helm Values
+# Chart version: 82.1.0
+#
+# This single chart installs everything you need for full-cluster observability:
+#   - Prometheus Operator   (manages Prometheus via CRDs instead of static config files)
+#   - Prometheus            (scrapes metrics from all your pods, nodes, and K8s components)
+#   - Alertmanager          (routes alerts to Slack, email, PagerDuty, etc.)
+#   - Grafana               (dashboards — ships with 20+ pre-built K8s dashboards)
+#   - node-exporter         (DaemonSet — collects host-level metrics: CPU, RAM, disk, network)
+#   - kube-state-metrics    (exposes K8s object state: pod health, deployment replicas, etc.)
+#
+# SWARM EQUIVALENT: There is no real equivalent in Docker Swarm.
+# You'd normally run Prometheus/Grafana as separate services with manual config files.
+# The "Operator" pattern means Prometheus config is driven by Kubernetes CRDs
+# (ServiceMonitor, PodMonitor, PrometheusRule) instead of editing prometheus.yml directly.
+#
+# Install with:
+#   1. kubectl apply -f metrics/namespace.yaml
+#   2. kubectl apply -f metrics/kube-prometheus-stack/grafana-secret.yaml
+#   3. helm install kube-prometheus-stack oci://ghcr.io/prometheus-community/charts/kube-prometheus-stack \
+#        -n metrics \
+#        -f metrics/kube-prometheus-stack/helm-values.yaml
+#
+# Upgrade after changes:
+#   helm upgrade kube-prometheus-stack oci://ghcr.io/prometheus-community/charts/kube-prometheus-stack \
+#     -n metrics \
+#     -f metrics/kube-prometheus-stack/helm-values.yaml
+#
+# BEFORE INSTALLING - edit and apply the Grafana secret:
+#   1. Open metrics/kube-prometheus-stack/grafana-secret.yaml
+#   2. Change the admin-password value
+#   3. kubectl apply -f metrics/kube-prometheus-stack/grafana-secret.yaml
+#
+# Access Grafana:
+#   kubectl port-forward svc/kube-prometheus-stack-grafana 3000:80 -n metrics
+#   # Then open http://localhost:3000
+
+# ---------------------------------------------------------------------------
+# PROMETHEUS OPERATOR
+# Watches for ServiceMonitor / PodMonitor / PrometheusRule CRDs and
+# automatically configures Prometheus without restarting it.
+# ---------------------------------------------------------------------------
+prometheusOperator:
+  enabled: true
+
+  # Admission webhooks validate Prometheus CRDs before they're applied.
+  # The patch job pulls from registry.k8s.io which is often unreachable
+  # from minikube on WSL2, causing the install to hang on a pending pod.
+  # Disabling it is safe for local development — you just lose CRD validation.
+  # Re-enable this in production (it prevents misconfigured PrometheusRules
+  # from breaking your Prometheus instance).
+  admissionWebhooks:
+    enabled: false
+    patch:
+      enabled: false
+
+  # The operator serves its metrics over TLS by default.
+  # It creates a TLS secret via the admission-create job above — but since
+  # that job can't pull its image on WSL2/Docker Desktop, the secret never
+  # gets created and the operator hangs waiting for it.
+  # Disabling TLS here makes the operator serve metrics over plain HTTP instead.
+  # Safe for local development. Re-enable in production.
+  tls:
+    enabled: false
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+# ---------------------------------------------------------------------------
+# PROMETHEUS
+# ---------------------------------------------------------------------------
+prometheus:
+  enabled: true
+
+  prometheusSpec:
+    # How long to keep data on disk.
+    # Default is 10d. Increase for longer trend analysis.
+    retention: 15d
+
+    # Disk storage for time-series data.
+    # 20Gi covers ~15 days for a small cluster (3-5 nodes, 10-20 pods).
+    # Scale up if you add more services or extend retention.
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 20Gi
+
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+
+    # By default the Operator only picks up ServiceMonitors in the same
+    # release namespace. Setting this to {} makes it watch ALL namespaces,
+    # so your app ServiceMonitors (in app1/, databases/) are auto-discovered.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelector: {}
+    serviceMonitorNamespaceSelector: {}
+
+    podMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelector: {}
+    podMonitorNamespaceSelector: {}
+
+    ruleSelectorNilUsesHelmValues: false
+    ruleSelector: {}
+    ruleNamespaceSelector: {}
+
+  # Expose Prometheus UI via Ingress (optional — Grafana is the main UI)
+  ingress:
+    enabled: true
+    annotations:
+      traefik.ingress.kubernetes.io/router.entrypoints: web
+    hosts:
+      - prometheus.test
+    paths:
+      - /
+
+# ---------------------------------------------------------------------------
+# ALERTMANAGER
+# Routes firing alerts to notification channels (Slack, email, PagerDuty).
+# Config lives in a Secret and can be updated without reinstalling.
+# ---------------------------------------------------------------------------
+alertmanager:
+  enabled: true
+
+  alertmanagerSpec:
+    storage:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 2Gi
+
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+  # Expose Alertmanager UI via Ingress (optional)
+  ingress:
+    enabled: true
+    annotations:
+      traefik.ingress.kubernetes.io/router.entrypoints: web
+    hosts:
+      - alertmanager.test
+    paths:
+      - /
+
+  # Alertmanager routing config.
+  # Replace the webhook URL and channel, then upgrade the release:
+  #   helm upgrade kube-prometheus-stack oci://ghcr.io/prometheus-community/charts/kube-prometheus-stack \
+  #     -n metrics -f metrics/kube-prometheus-stack/helm-values.yaml
+  config:
+    global:
+      # How long to wait after an alert stops firing before marking it resolved.
+      resolve_timeout: 5m
+
+    route:
+      # Top-level catch-all — every alert lands here first.
+      # group_by: bundle alerts that share the same alertname + namespace into one message.
+      # Without grouping you'd get 10 separate Slack messages for 10 crashing pods.
+      group_by: ['alertname', 'namespace']
+
+      # group_wait: after a new alert fires, wait this long before sending —
+      # gives time for related alerts to arrive so they're bundled together.
+      group_wait: 30s
+
+      # group_interval: if a group already fired, wait this long before sending
+      # new alerts that join the same group.
+      group_interval: 5m
+
+      # repeat_interval: if an alert is still firing, re-notify after this long.
+      # 12h means you get reminded once per half-day until it's fixed.
+      repeat_interval: 12h
+
+      # Default receiver for all alerts.
+      receiver: 'slack-notifications'
+
+      # routes: override the default for specific alerts.
+      # Example below sends watchdog (a always-on heartbeat alert) to a null receiver
+      # so it doesn't spam your Slack every 12h.
+      routes:
+        - matchers:
+            - alertname = "Watchdog"
+          receiver: 'null'
+
+    receivers:
+      - name: 'null'   # silently drops alerts routed here
+
+      - name: 'slack-notifications'
+        slack_configs:
+          - api_url: 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL'
+            channel: '#alerts'
+            send_resolved: true  # also notify when the alert clears
+
+            # Title shown in bold at the top of the Slack message.
+            title: '{{ if eq .Status "firing" }}🔥{{ else }}✅{{ end }} {{ .CommonAnnotations.summary }}'
+
+            # Body of the message — lists each alert with its description.
+            text: |
+              {{ range .Alerts }}
+              *Alert:* {{ .Annotations.summary }}
+              *Description:* {{ .Annotations.description }}
+              *Severity:* {{ .Labels.severity }}
+              *Namespace:* {{ .Labels.namespace }}
+              {{ end }}
+
+# ---------------------------------------------------------------------------
+# GRAFANA
+# Pre-loaded with 20+ dashboards: node metrics, K8s cluster overview,
+# pod CPU/memory, persistent volumes, Kubernetes API server, etc.
+# ---------------------------------------------------------------------------
+grafana:
+  enabled: true
+
+  # The init-chown-data container runs at startup to fix file ownership on the
+  # Grafana PVC. On Docker Desktop / WSL2 the volume doesn't allow chown,
+  # causing the init container to crash-loop before Grafana even starts.
+  # Disabling it lets Grafana run without resetting ownership — safe for local dev.
+  initChownData:
+    enabled: false
+
+  # Pull admin credentials from a Secret instead of hardcoding them here.
+  # Create the secret before installing (see top of this file).
+  admin:
+    existingSecret: grafana-admin-secret
+    userKey: admin-user
+    passwordKey: admin-password
+
+  # Persist Grafana data (dashboards, datasources, users you add via UI).
+  persistence:
+    enabled: true
+    size: 5Gi
+    accessModes:
+      - ReadWriteOnce
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  # Expose Grafana via Ingress so you can reach it at http://grafana.test
+  # (Add grafana.test to your /etc/hosts pointing at your minikube IP)
+  # NOTE: Grafana's ingress uses `path` (singular string), not `paths` (list).
+  # This differs from the Prometheus and Alertmanager ingress which use `paths` (list).
+  ingress:
+    enabled: true
+    annotations:
+      traefik.ingress.kubernetes.io/router.entrypoints: web
+    hosts:
+      - grafana.test
+    path: /
+
+  # Grafana.ini overrides
+  # grafana.ini is a Grafana subchart passthrough key — it is valid here even
+  # though it does not appear at this path in the kube-prometheus-stack defaults
+  # file directly. The chart passes the entire grafana: block to the Grafana
+  # subchart, which recognises grafana.ini.
+  grafana.ini:
+    server:
+      root_url: http://grafana.test
+    # Useful for allowing anyone to view dashboards without logging in (dev only):
+    # auth.anonymous:
+    #   enabled: true
+    #   org_role: Viewer
+
+  # Default datasource — auto-configured to point at the Prometheus in this release.
+  # You can add more datasources here (Loki for logs, Tempo for traces, etc.)
+  additionalDataSources: []
+  # - name: Loki
+  #   type: loki
+  #   url: http://loki.metrics.svc:3100
+  #   access: proxy
+
+# ---------------------------------------------------------------------------
+# NODE EXPORTER
+# DaemonSet — runs on every node, exposes host-level metrics (CPU, memory,
+# disk I/O, network). Equivalent to running `htop` on every machine, but
+# scraped by Prometheus automatically.
+#
+# Two separate keys control node exporter:
+#   nodeExporter       — top-level kube-prometheus-stack toggle (enabled/disabled)
+#   prometheus-node-exporter — subchart config (resources, tolerations, etc.)
+# Both must use their exact names as shown below.
+# ---------------------------------------------------------------------------
+nodeExporter:
+  enabled: true
+
+prometheus-node-exporter:
+  # node-exporter mounts the host's root filesystem (/) to collect disk metrics.
+  # Docker Desktop on WSL2 doesn't support the required mount propagation mode,
+  # causing the pod to crash with "path / is mounted on / but it is not a shared
+  # or slave mount". Disabling this lets node-exporter run without that mount —
+  # you lose host filesystem metrics but everything else (CPU, RAM, network) works.
+  hostRootFsMount:
+    enabled: false
+
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# ---------------------------------------------------------------------------
+# KUBE-STATE-METRICS
+# Exposes Kubernetes object state as metrics:
+#   - kube_pod_status_phase (are pods running/pending/failed?)
+#   - kube_deployment_status_replicas_available
+#   - kube_persistentvolumeclaim_status_phase
+# Essential for "is my cluster healthy?" dashboards.
+#
+# Two separate keys control kube-state-metrics:
+#   kubeStateMetrics    — top-level kube-prometheus-stack toggle (enabled/disabled)
+#   kube-state-metrics  — subchart config (resources, etc.)
+# Both must use their exact names as shown below.
+# ---------------------------------------------------------------------------
+kubeStateMetrics:
+  enabled: true
+
+kube-state-metrics:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+# ---------------------------------------------------------------------------
+# DEFAULT ALERT RULES
+# Ships with rules for: node disk pressure, pod crash-looping,
+# high CPU/memory, K8s API server errors, PVC almost full, and more.
+# You can disable specific rule groups if they're too noisy.
+#
+# All keys below exist in chart version 82.1.0. Keys not present in an older
+# version of our values file have been added and documented here:
+#   k8sContainerMemoryRss          — added (was missing)
+#   k8sContainerMemorySwap         — added (was missing)
+#   k8sContainerResource           — added (was missing)
+#   k8sContainerMemoryWorkingSetBytes — added (was missing)
+#   kubeSchedulerRecording         — added (was missing; separate from kubeSchedulerAlerting)
+# ---------------------------------------------------------------------------
+defaultRules:
+  create: true
+  rules:
+    alertmanager: true
+    etcd: false         # Not exposed in most managed K8s clusters
+    configReloaders: true
+    general: true
+    k8sContainerCpuUsageSecondsTotal: true
+    k8sContainerMemoryCache: true
+    k8sContainerMemoryRss: true
+    k8sContainerMemorySwap: true
+    k8sContainerResource: true
+    k8sContainerMemoryWorkingSetBytes: true
+    k8sPodOwner: true
+    kubeApiserverAvailability: true
+    kubeApiserverBurnrate: true
+    kubeApiserverHistogram: true
+    kubeApiserverSlos: true
+    kubeControllerManager: false  # Not exposed in most managed K8s clusters
+    kubelet: true
+    kubeProxy: false              # Not exposed in most managed K8s clusters
+    kubePrometheusGeneral: true
+    kubePrometheusNodeRecording: true
+    kubernetesApps: true
+    kubernetesResources: true
+    kubernetesStorage: true
+    kubernetesSystem: true
+    kubeSchedulerAlerting: false  # Not exposed in most managed K8s clusters
+    kubeSchedulerRecording: false # Not exposed in most managed K8s clusters
+    kubeStateMetrics: true
+    network: true
+    node: true
+    nodeExporterAlerting: true
+    nodeExporterRecording: true
+    prometheus: true
+    prometheusOperator: true
+    windows: false
