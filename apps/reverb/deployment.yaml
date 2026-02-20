@@ -13,20 +13,20 @@
 #   kubectl apply -f apps/app1/configmap.yaml
 #   kubectl create secret docker-registry regcred --namespace=app1 ...
 #
-# Apply with: kubectl apply -f apps/app1/deployment.yaml
+# Apply with: kubectl apply -f apps/reverb/deployment.yaml
 
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: app1
+  name: reverb
   namespace: apps
   labels:
-    app: app1
+    app: reverb
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: app1
+      app: reverb
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -35,30 +35,19 @@ spec:
   template:
     metadata:
       labels:
-        app: app1
+        app: reverb
     spec:
-      # Init containers run sequentially BEFORE the app starts.
-      # SWARM EQUIVALENT: depends_on (but actually enforced — Swarm's depends_on
-      # only waits for the container to start, not for the service to be ready).
-      # These wait for the actual TCP port to accept connections.
-      initContainers:
-        - name: wait-for-mariadb
-          image: busybox:1.37
-          command: ['sh', '-c', 'until nc -z mariadb-cluster.databases.svc 3306; do echo "waiting for mariadb..."; sleep 3; done']
-        - name: wait-for-redis
-          image: busybox:1.37
-          command: ['sh', '-c', 'until nc -z redis-cluster-master.databases.svc 6379; do echo "waiting for redis..."; sleep 3; done']
       containers:
-        - name: app1
-          image: hub.connoisseur-suite.co.uk/test/laravel-app:latest
+        - name: reverb
+          image: hub.connoisseur-suite.co.uk/test/reverb:latest
           imagePullPolicy: Always
           ports:
-            - containerPort: 9000
+            - containerPort: 8080
           envFrom:
             - configMapRef:
-                name: laravel-app-config
+                name: reverb-config
             - secretRef:
-                name: app1-secrets
+                name: reverb-secrets
           resources:
             limits:
               memory: "1Gi"
@@ -67,17 +56,17 @@ spec:
               cpu: "250m"
           startupProbe:
             tcpSocket:
-              port: 9000
+              port: 8080
             periodSeconds: 5
             failureThreshold: 12     # 12 x 5s = 60s startup window
           readinessProbe:
             tcpSocket:
-              port: 9000
+              port: 8080
             initialDelaySeconds: 5
             periodSeconds: 10
           livenessProbe:
             tcpSocket:
-              port: 9000
+              port: 8080
             initialDelaySeconds: 30
             periodSeconds: 30
       imagePullSecrets:
@@ -95,13 +84,13 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: app1
+  name: reverb
   namespace: apps
   labels:
-    app: app1
+    app: reverb
 spec:
   selector:
-    app: app1
+    app: reverb
   ports:
-    - port: 9000
-      targetPort: 9000
+    - port: 8080
+      targetPort: 8080

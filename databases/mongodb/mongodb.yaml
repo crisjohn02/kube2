@@ -14,10 +14,9 @@
 #
 # Install the operator first:
 #   helm repo add mongodb https://mongodb.github.io/helm-charts
-#   helm install community-operator mongodb/community-operator \
-#     --namespace databases \
-#     --set operator.watchNamespace="databases"
-#
+#   See: https://www.mongodb.com/docs/kubernetes/current/tutorial/install-k8s-operator/#std-label-install-k8s
+#   kubectl apply -f https://raw.githubusercontent.com/mongodb/mongodb-kubernetes/1.7.0/public/crds.yaml
+#   helm upgrade --install mongodb-kubernetes-operator mongodb/mongodb-kubernetes --namespace databases
 # Then apply secrets and this resource:
 #   kubectl apply -f databases/mongodb/secrets.yaml
 #   kubectl apply -f databases/mongodb/mongodb.yaml
@@ -84,59 +83,3 @@ spec:
                 requests:
                   cpu: 100m
                   memory: 128Mi
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: metrics-endpoint-password
-  namespace: databases
-type: Opaque
-stringData:
-  password: 'secret'
-  username: root
----
-apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
-metadata:
-  annotations:
-
-  # This needs to match `spec.ServiceMonitorSelector.matchLabels` from your
-  # `prometheuses.monitoring.coreos.com` resouce.
-  labels:
-    release: prometheus
-
-  name: mongodb-sm
-  namespace: databases
-spec:
-  endpoints:
-
-  # Configuring a Prometheus Endpoint with basic Auth.
-  # `prom-secret` is a Secret containing a `username` and `password` entries.
-  - basicAuth:
-      password:
-        key: password
-        name: metrics-endpoint-password
-      username:
-        key: username
-        name: metrics-endpoint-password
-
-    # This port matches what we created in our MongoDB Service.
-    port: prometheus
-
-    # If using HTTPS enabled endpoint, change scheme to https
-    scheme: http
-
-    # Configure different TLS related settings. For more information, see:
-    # https://github.com/prometheus-operator/prometheus-operator/blob/main/pkg/apis/monitoring/v1/types.go#L909
-    # tlsConfig:
-    #    insecureSkipVerify: true
-
-  # What namespace to watch
-  namespaceSelector:
-    matchNames:
-    - databases
-
-  # Service labels to match
-  selector:
-    matchLabels:
-      app: mongodb-svc

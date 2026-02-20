@@ -10,8 +10,8 @@
 # Dashboard - equivalent to your Swarm Traefik dashboard labels
 ingressRoute:
   dashboard:
-    enabled: false
-    # matchRule: Host(`traefik.test`)   # Access dashboard at http://traefik.localhost
+    enabled: true
+    matchRule: Host(`traefik.test`)   # Access dashboard at http://traefik.localhost
     # entryPoints: ["web"]
 additionalArguments:
   - "--api.insecure=true"

@@ -28,11 +28,11 @@ architecture: replication
 replicaCount: 3
 
 sentinel:
-  enabled: true
+  enabled: false
   quorum: 2
 
 persistence:
-  enabled: true
+  enabled: false
   size: 1Gi
 
 auth:
@@ -40,9 +40,9 @@ auth:
   existingSecret: redis-secret
   existingSecretPasswordKey: REDIS_PASSWORD
 
-metrics:
-  enabled: true
-  serviceMonitor:
-    enabled: true
+# metrics:
+#   enabled: true
+#   serviceMonitor:
+#     enabled: true
 
 
