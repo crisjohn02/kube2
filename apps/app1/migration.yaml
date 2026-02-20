@@ -27,6 +27,7 @@ spec:
       containers:
         - name: app1-migration
           image: hub.connoisseur-suite.co.uk/test/laravel-app:latest
+          imagePullPolicy: Always
           command: ["php", "artisan", "migrate", "--force"]
           envFrom:
             - configMapRef:

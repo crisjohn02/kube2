@@ -87,8 +87,8 @@ data:
   # ---- MongoDB ReplicaSet connection ----
   # Swarm:  MONGODB_HOST=mongodb
   # K8s:    MONGODB_HOST=mongodb-headless.databases.svc (headless for replica discovery)
-  MONGODB_HOST: "mongodb-svc.databases.svc"
-  MONGODB_URI: "mongodb://mongodb-svc.databases.svc:27017"
+  MONGODB_HOST: "mongodb-0.mongodb-svc.databases.svc.cluster.local,mongodb-1.mongodb-svc.databases.svc.cluster.local,mongodb-2.mongodb-svc.databases.svc.cluster.local"
+  MONGODB_URI: "mongodb://mongodb-0.mongodb-svc.databases.svc.cluster.local:27017,mongodb-1.mongodb-svc.databases.svc.cluster.local:27017,mongodb-2.mongodb-svc.databases.svc.cluster.local:27017/?replicaSet=mongodb&authSource=admin"
   MONGODB_PORT: "27017"
   MONGODB_DATABASE: "app1"
 
