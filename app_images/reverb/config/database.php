@@ -113,22 +113,6 @@ return [
             // 'trust_server_certificate' => env('DB_TRUST_SERVER_CERTIFICATE', 'false'),
         ],
 
-        'mongodb' => [
-            'driver' => 'mongodb',
-            'dsn' => env('MONGODB_URI', 'mongodb://mongodb:27017'),
-            'database' => env('MONGODB_DATABASE', 'app1'),
-            'username' => env('MONGODB_USERNAME', ''),
-            'password' => env('MONGODB_PASSWORD', ''),
-            'options' => [
-                // 'authMechanism' => 'SCRAM-SHA-256',
-                'authSource' => env('MONGODB_AUTHENTICATION_DATABASE', 'admin'),
-                // 'replicaSet' => env('MONGODB_REPLICA_SET', 'replicaset'),
-                // 'readPreference' => 'secondaryPreferred',
-                // 'readConcern' => 'majority',
-                // 'writeConcern' => 'majority'
-            ],
-        ],
-
     ],
 
     /*
