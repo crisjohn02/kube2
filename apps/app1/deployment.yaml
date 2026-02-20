@@ -37,9 +37,20 @@ spec:
       labels:
         app: app1
     spec:
+      # Init containers run sequentially BEFORE the app starts.
+      # SWARM EQUIVALENT: depends_on (but actually enforced — Swarm's depends_on
+      # only waits for the container to start, not for the service to be ready).
+      # These wait for the actual TCP port to accept connections.
+      initContainers:
+        - name: wait-for-mariadb
+          image: busybox:1.37
+          command: ['sh', '-c', 'until nc -z mariadb-cluster.databases.svc 3306; do echo "waiting for mariadb..."; sleep 3; done']
+        - name: wait-for-redis
+          image: busybox:1.37
+          command: ['sh', '-c', 'until nc -z redis-cluster.databases.svc 6379; do echo "waiting for redis..."; sleep 3; done']
       containers:
         - name: app1
-          image: laravel-app:v1.0.0
+          image: hub.connoisseur-suite.co.uk/test/laravel-app:latest
           ports:
             - containerPort: 9000
           envFrom:

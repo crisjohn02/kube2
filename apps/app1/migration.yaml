@@ -3,15 +3,25 @@
 # This job runs the Laravel migration command on app1.
 # It uses the laravel-app-config ConfigMap for environment variables.
 #
-# Apply with: kubectl apply -f migration.yaml
-# kubectl apply -f apps/app1/migration.yaml
+# The job name uses generateName so each run creates a unique job.
+# Old completed jobs are cleaned up automatically after 5 minutes (ttlSecondsAfterFinished).
+#
+# CI/CD usage:
+#   kubectl create -f apps/app1/migration.yaml   (use create, not apply — generateName requires it)
+#
+# Manual usage:
+#   kubectl create -f apps/app1/migration.yaml
+
+# Delete the job with:
+# kubectl delete job app1-migration -n apps
 
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: app1-migration
+  generateName: app1-migration-
   namespace: apps
 spec:
+  ttlSecondsAfterFinished: 300
   template:
     spec:
       containers:

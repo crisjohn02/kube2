@@ -1,0 +1,115 @@
+# Deploy app1 to Kubernetes (DigitalOcean)
+#
+# HOW IT WORKS:
+# 1. Checks out the app source code
+# 2. Builds the Docker image and pushes to your private registry
+# 3. Uses doctl to authenticate with DigitalOcean and get kubeconfig
+# 4. Updates the deployment image tag (rolling update happens automatically)
+# 5. Runs migrations as a Job
+#
+# REQUIRED GITHUB SECRETS:
+#   DIGITALOCEAN_ACCESS_TOKEN  - Your DO API token (generate at https://cloud.digitalocean.com/account/api/tokens)
+#   REGISTRY_USERNAME          - Docker registry username for hub.connoisseur-suite.co.uk
+#   REGISTRY_PASSWORD          - Docker registry password
+#
+# REQUIRED GITHUB VARIABLES:
+#   DIGITALOCEAN_CLUSTER_NAME  - Your DOKS cluster name (e.g., "k8s-staging")
+#
+# HOW GITHUB ACTIONS ACCESSES THE CLUSTER:
+#   There's no SSH involved. DigitalOcean's managed K8s exposes an API endpoint.
+#   The doctl CLI authenticates using your DO API token, then generates a
+#   kubeconfig file that kubectl uses to talk to the control plane over HTTPS.
+#   Think of it like: DO token → doctl → kubeconfig → kubectl → cluster API.
+
+name: Deploy app1
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_migrations:
+        description: 'Run database migrations'
+        required: false
+        type: boolean
+        default: false
+
+  # Deploy automatically when app source changes on main
+  # push:
+  #   branches: [main]
+  #   paths:
+  #     - 'app_images/laravel-app/**'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      IMAGE_REGISTRY: hub.connoisseur-suite.co.uk
+      IMAGE_NAME: test/laravel-app
+      APP_NAMESPACE: apps
+
+    steps:
+      # ── Build Phase ──────────────────────────────────────────────
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set image tag
+        run: echo "IMAGE_TAG=${GITHUB_SHA::8}" >> $GITHUB_ENV
+
+      - name: Log in to private registry
+        run: |
+          echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login ${{ env.IMAGE_REGISTRY }} \
+            -u "${{ secrets.REGISTRY_USERNAME }}" --password-stdin
+
+      - name: Build and push image
+        run: |
+          docker build -t ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
+                       -t ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+                       ./app_images/laravel-app
+          docker push ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          docker push ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+      # ── Deploy Phase ─────────────────────────────────────────────
+      # This is where GitHub Actions connects to your K8s cluster.
+      # doctl authenticates with the DO API token and writes a kubeconfig
+      # that kubectl picks up automatically.
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Configure kubectl
+        run: doctl kubernetes cluster kubeconfig save ${{ vars.DIGITALOCEAN_CLUSTER_NAME }}
+
+      # Now kubectl is authenticated. Every kubectl command below
+      # talks to your cluster's API server over HTTPS.
+
+      - name: Update deployment image
+        run: |
+          kubectl set image deployment/app1 \
+            app1=${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
+            -n ${{ env.APP_NAMESPACE }}
+
+      - name: Wait for rollout
+        run: kubectl rollout status deployment/app1 -n ${{ env.APP_NAMESPACE }} --timeout=120s
+
+      # ── Migrations (optional) ────────────────────────────────────
+
+      - name: Run migrations
+        if: ${{ github.event.inputs.run_migrations == 'true' }}
+        run: |
+          # Patch the image tag in the manifest and create the job
+          # Using generateName so each run gets a unique job name (e.g., app1-migration-abc12)
+          # kubectl create (not apply) is required when using generateName
+          JOB_NAME=$(kubectl create -f apps/app1/migration.yaml \
+            --dry-run=client -o jsonpath='{.metadata.generateName}' 2>/dev/null || true)
+
+          kubectl create -f <(
+            sed "s|image: .*|image: ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}|" \
+              apps/app1/migration.yaml
+          ) -o jsonpath='{.metadata.name}' | while read JOB_NAME; do
+            echo "Waiting for job/$JOB_NAME to complete..."
+            kubectl wait --for=condition=complete job/$JOB_NAME \
+              -n ${{ env.APP_NAMESPACE }} --timeout=120s
+          done
