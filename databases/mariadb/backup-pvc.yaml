@@ -1,0 +1,15 @@
+# MariaDB Backup PVC
+#
+# Apply with:
+#   kubectl apply -f databases/mariadb/backup-pvc.yaml
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mariadb-backups
+  namespace: databases
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 20Gi

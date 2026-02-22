@@ -22,4 +22,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
 });
 
+Route::get('/test', function() {
+    return request()->ips();
+});
+
 require __DIR__.'/settings.php';

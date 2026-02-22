@@ -27,6 +27,10 @@
 #   - Connection string secret: mongodb-admin-root (auto-generated)
 #   - PVCs: 3 x 10Gi persistent volumes
 
+# To get the connection string:
+# kubectl get secret mongodb-admin-root -n databases -o jsonpath='{.data.connectionString}' | base64 -d
+
+
 apiVersion: mongodbcommunity.mongodb.com/v1
 kind: MongoDBCommunity
 metadata:
@@ -37,11 +41,11 @@ spec:
   type: ReplicaSet
   version: "8.0.4"
 
-  prometheus:
-    username: root
-    passwordSecretRef:
-      name: metrics-endpoint-password
-      key: password
+  # prometheus:
+  #   username: root
+  #   passwordSecretRef:
+  #     name: metrics-endpoint-password
+  #     key: password
 
   security:
     authentication:
