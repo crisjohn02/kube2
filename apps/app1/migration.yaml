@@ -19,7 +19,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: app1-migration
-  namespace: apps
+  namespace: app1
 spec:
   ttlSecondsAfterFinished: 300
   template:
