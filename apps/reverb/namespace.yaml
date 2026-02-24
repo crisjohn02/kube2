@@ -1,0 +1,25 @@
+# Namespace - Logical grouping for all fluent resources
+#
+# SWARM EQUIVALENT: This replaces the concept of a "stack name".
+# When you run: docker stack deploy -c stack.yaml fluent-stack
+# The "fluent-stack" name groups all services together.
+#
+# In K8s, a Namespace does the same thing - it groups Deployments, Services,
+# Secrets, ConfigMaps, etc. into an isolated unit.
+#
+# Benefits over Swarm stacks:
+#   - Resource quotas per namespace (limit CPU/memory per team/app)
+#   - RBAC per namespace (control who can access what)
+#   - Network policies per namespace (isolate traffic)
+#   - Easy cleanup: kubectl delete namespace fluent (removes everything inside)
+#
+# Apply with: kubectl apply -f namespace.yaml
+# kubectl apply -f apps/app1/namespace.yaml
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: reverb
+  labels:
+    app: reverb
+    environment: production

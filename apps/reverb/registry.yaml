@@ -1,0 +1,49 @@
+# Registry Credentials - Authentication for your private Docker registry
+#
+# SWARM EQUIVALENT: In Swarm, you logged in once on the manager node:
+#   docker login hub.connoisseur-suite.co.uk
+# And all services could pull images automatically.
+#
+# In K8s, each namespace needs its own pull secret because:
+#   - Pods don't share the node's Docker login
+#   - Each namespace is isolated
+#   - You explicitly reference this in every Deployment via imagePullSecrets
+#
+# HOW TO CREATE (don't apply this YAML directly - use the kubectl command):
+#
+#   kubectl create secret docker-registry regcred \
+#     --namespace=fluent \
+#     --docker-server=hub.connoisseur-suite.co.uk \
+#     --docker-username=YOUR_USERNAME \
+#     --docker-password=YOUR_PASSWORD
+#
+# The command above creates a Secret of type kubernetes.io/dockerconfigjson
+# which contains your registry auth in the same format as ~/.docker/config.json
+#
+# Then in every Deployment, you reference it:
+#   spec:
+#     imagePullSecrets:
+#       - name: regcred
+#
+# IMPORTANT: This file is here for reference only.
+# Use the kubectl command above to create it with your real credentials.
+# kubectl apply -f registry/credentials.yaml
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: regcred
+  namespace: reverb
+type: kubernetes.io/dockerconfigjson
+stringData:
+  # This is the same format as ~/.docker/config.json
+  # Replace with your actual credentials
+  .dockerconfigjson: |
+    {
+      "auths": {
+        "hub.connoisseur-suite.co.uk": {
+          "username": "ssr-admin",
+          "password": "dr8kidreQaglphanejopritrE"
+        }
+      }
+    }

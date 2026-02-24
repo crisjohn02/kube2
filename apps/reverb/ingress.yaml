@@ -10,7 +10,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: reverb
-  namespace: apps
+  namespace: reverb
   labels:
     app: reverb
 spec:
