@@ -1,0 +1,34 @@
+# Ingress - Expose ArgoCD web UI via Traefik (Local)
+#
+# ArgoCD server runs in the argocd namespace.
+# The --insecure flag must be set on argocd-server so Traefik handles TLS.
+#
+# To disable ArgoCD internal TLS (required for this ingress to work):
+#   kubectl -n argocd patch deployment argocd-server \
+#     --type='json' -p='[{"op":"add","path":"/spec/template/spec/containers/0/args/-","value":"--insecure"}]'
+#
+# Or set server.insecure: true in the argocd-cmd-params-cm ConfigMap:
+#   kubectl -n argocd patch configmap argocd-cmd-params-cm \
+#     --type merge -p '{"data":{"server.insecure":"true"}}'
+#   kubectl -n argocd rollout restart deployment argocd-server
+#
+# Apply with: kubectl apply -f infrastructure/argocd/ingress.yaml
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: argocd-server
+  namespace: argocd
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: argocd.test
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: argocd-server
+                port:
+                  number: 8080

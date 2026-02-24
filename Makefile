@@ -1,8 +1,6 @@
 install-namespaces:
 	kubectl create namespace databases
 	kubectl create namespace apps
-	kubectl create namespace traefik
-	kubectl create namespace metrics
 
 uninstall-namespaces:
 	kubectl delete namespace databases
@@ -74,3 +72,6 @@ uninstall-redis:
 	helm uninstall redis-cluster
 	kubectl delete -f databases/redis/secrets.yaml
 	kubectl delete -f databases/ui/redisinsight.yaml
+
+add-registry:
+	kubectl apply -f registry/credentials.yaml

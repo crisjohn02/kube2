@@ -1,0 +1,19 @@
+global:
+  domain: argocd.test
+
+dex:
+  enabled: false
+
+configs:
+  params:
+    server.insecure: true
+
+server:
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    extraTls:
+      - hosts:
+        - argocd.test
+        # Based on the ingress controller used secret might be optional
+        secretName: argocd-tls
